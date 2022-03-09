@@ -2,13 +2,14 @@
 
 ![logo](image/logo1.jpg)
 
-# docsify <small>1</small>
+# BelovedDocs <small>1</small>
 
-> 一个神奇的文档网站生成器。
+> 个人随手记录在线文档。
 
-- 简单、轻便 (压缩后 ~21kB)
-- 无需生成 html 文件
-- 众多主题
+- 学习笔记
+- 常见问题
+- 杂谈
 
 [GitHub](https://github.com/beloved-zh)
-[Get Started](#1)
+[Gitee](https://gitee.com/beloved_zh)
+[Get Started](#BelovedDocs)
