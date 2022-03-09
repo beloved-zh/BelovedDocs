@@ -20,10 +20,17 @@
     coverpage: true,  // 封面
     loadSidebar: true,  // 侧边栏
     auto2top: true, //  切换页面后是否自动跳转到页面顶部
-    routerMode: 'history' // 路由模式
+    routerMode: 'history', // 路由模式
+    copyCode: { // 代码复制配置
+      buttonText : '点击复制',
+      errorText  : 'Error',
+      successText: 'Success'
+    }
   }
 </script>
 <!-- Docsify v4 -->
 <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+<!-- 复制到剪贴板 -->
+<script src="//cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
 </body>
 </html>
