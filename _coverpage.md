@@ -1,8 +1,8 @@
 <!-- _coverpage.md -->
 
-![logo](image/logo1.jpg)
+<!-- ![logo](image/logo1.jpg) -->
 
-# BelovedDocs <small>1</small>
+# BelovedDocs
 
 > 个人随手记录在线文档。
 
@@ -12,4 +12,4 @@
 
 [GitHub](https://github.com/beloved-zh)
 [Gitee](https://gitee.com/beloved_zh)
-[Get Started](#BelovedDocs)
+[开始阅读](#BelovedDocs)
