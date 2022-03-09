@@ -12,4 +12,4 @@
 
 [GitHub](https://github.com/beloved-zh)
 [Gitee](https://gitee.com/beloved_zh)
-[开始阅读](#BelovedDocs)
+[开始阅读](#beloved-docs)
