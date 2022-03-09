@@ -1,6 +1,6 @@
 <!-- _coverpage.md -->
 
-![logo](image/logo.jpg ':size=8%')
+![logo](./image/logo.jpg ':size=8%')
 
 # BelovedDocs
 
