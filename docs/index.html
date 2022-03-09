@@ -15,9 +15,9 @@
 <div id="app">Loading...</div>
 <script>
   // 离线支持
-  // if (typeof navigator.serviceWorker !== 'undefined') {
-  //   navigator.serviceWorker.register('sw.js')
-  // }
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('sw.js')
+  }
 
   window.$docsify = {
     name: 'BelovedDocs',  // 侧边标题
@@ -39,6 +39,18 @@
       placeholder: '搜索',
       noData: '找不到结果'
     },
+    count:{ // 字数统计
+      countable: true,
+      fontsize: '0.9em',
+      color: 'rgb(90,90,90)',
+      language: 'chinese'
+    },
+    pagination: { // 分页
+      previousText: '上一章节',
+      nextText: '下一章节',
+      crossChapter: true,
+      crossChapterText: true,
+    }
   }
 </script>
 <!-- Docsify v4 -->
@@ -51,7 +63,10 @@
 <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
 <!-- 图片缩放插件 -->
 <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
-
+<!-- 字数统计 -->
+<script src="//unpkg.com/docsify-count/dist/countable.js"></script>
+<!-- 分页 -->
+<script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
 <!-- 代码高亮 -->
 <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-java.min.js"></script>
 <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
