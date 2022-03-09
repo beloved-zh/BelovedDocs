@@ -15,9 +15,9 @@
 <div id="app">Loading...</div>
 <script>
   // 离线支持
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('sw.js')
-  }
+  // if (typeof navigator.serviceWorker !== 'undefined') {
+  //   navigator.serviceWorker.register('sw.js')
+  // }
 
   window.$docsify = {
     name: 'BelovedDocs',  // 侧边标题
@@ -25,6 +25,7 @@
     maxLevel: 5,
     subMaxLevel: 3,
     coverpage: true,  // 封面
+    onlyCover: false, // 是否只访问封面
     homepage: 'README.md',
     loadSidebar: true,  // 侧边栏
     auto2top: true, //  切换页面后是否自动跳转到页面顶部
