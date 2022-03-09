@@ -1,1 +1,1 @@
-docsify serve src
+docsify serve
