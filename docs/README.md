@@ -1,4 +1,4 @@
-# BelovedDocs :id=beloved-docs
+# BelovedDocs
 
 > 个人在线笔记
 
