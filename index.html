@@ -14,9 +14,14 @@
 -->
 <div id="app">Loading...</div>
 <script>
+  // 离线支持
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('sw.js')
+  }
+
   window.$docsify = {
     name: 'BelovedDocs',  // 侧边标题
-    repo: 'https://github.com/beloved-zh/BelovedDocs',  // 右上角GitHub地址
+    repo: 'https://github.com/beloved-zh',  // 右上角GitHub地址
     coverpage: true,  // 封面
     loadSidebar: true,  // 侧边栏
     auto2top: true, //  切换页面后是否自动跳转到页面顶部
