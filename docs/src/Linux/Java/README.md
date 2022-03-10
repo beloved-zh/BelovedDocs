@@ -3,25 +3,25 @@
 
 ## 1、下载jdk8
 
-**下载地址**：https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html
+> 下载地址：https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html
 
 ![image-20220310104534656](image/image-20220310104534656.png)
 
 ## 2、解压安装
-`/usr/local`下创建Java目录，上传jdk源码包
+`/usr/local`下创建java目录，上传jdk源码包
 
 ![image-20220310105037886](image/image-20220310105037886.png)
 
 使用解压命令解压
 
 ```bash
-[root@beloved java]# tar -zxvf jdk-8u321-linux-x64.tar.gz 
+tar -zxvf jdk-8u321-linux-x64.tar.gz 
 ```
 
 解压完成顺手删除源码包
 
 ```bash
-[root@beloved java]# rm -f jdk-8u321-linux-x64.tar.gz
+rm -f jdk-8u321-linux-x64.tar.gz
 ```
 
 ![image-20220310105319724](image/image-20220310105319724.png)
@@ -31,7 +31,7 @@
 `/etc/profile`文件是Liunx环境变量相关配置，jdk环境变量在此配置
 
 ```bash
-[root@beloved java]# vim /etc/profile
+vim /etc/profile
 ```
 
 
@@ -57,19 +57,19 @@ export PATH=$PATH:${JAVA_PATH}
 通过命令source /etc/profile让profile文件立即生效
 
 ```bash
-[root@beloved java]# source /etc/profile
+source /etc/profile
 ```
 
 ## 4、测试
 
 ```bash
-[root@beloved java]# javac
+javac
 ```
 
 ![image-20220310110254176](image/image-20220310110254176.png)
 
 ```bash
-[root@beloved java]# java -version
+java -version
 ```
 
 ![image-20220310110327941](image/image-20220310110327941.png)
