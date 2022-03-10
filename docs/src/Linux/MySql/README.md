@@ -286,3 +286,55 @@ flush privileges;
 ```
 
 ![image-20220310200029530](image/image-20220310200029530.png)
+
+# 配置远程连接
+
+## 1、开启远程连接
+
+> 修改用户连接权限
+
+```sql
+mysql> use mysql	# 切换数据库
+Database changed
+mysql> select host,user from user;	# 查看用户
++-----------+---------------+
+| host      | user          |
++-----------+---------------+
+| localhost | mysql.session |
+| localhost | mysql.sys     |
+| localhost | root          |
++-----------+---------------+
+3 rows in set (0.00 sec)
+
+mysql> update user set host='%' where user='root';	# 修改用户连接权限
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> FLUSH  PRIVILEGES;	# 更新
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select host,user from user;
++-----------+---------------+
+| host      | user          |
++-----------+---------------+
+| %         | root          |
+| localhost | mysql.session |
+| localhost | mysql.sys     |
++-----------+---------------+
+3 rows in set (0.00 sec)
+
+mysql> 
+
+```
+
+> 添加用户
+
+```bash
+create user 'username'@'%' identified by 'password';  这里 @‘%’ 表示在任何主机都可以登录
+```
+
+> **注意：如果防火墙开启还要开放对应端口，云主机还需要开放对应策略组**
+
+## 2、测试连接
+
+![image-20220310203644450](image/image-20220310203644450.png)
