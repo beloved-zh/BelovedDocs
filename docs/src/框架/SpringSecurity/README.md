@@ -359,3 +359,40 @@ spring.security.user.roles=admin,user
 > UserDetailService 用来修改默认认证的数据源信息
 
 ![image-20220313181815816](image/image-20220313181815816.png)
+
+# 自定义认证
+
+## 自定义资源权限规则
+
+- `/index` 公共资源
+- `/hello` 需要认证的资源
+
+自定义 `WebSecurityConfigurerAdapter#configure` 方法进行实现
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+	@Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .mvcMatchers("/index").permitAll()  // 放行资源要写在认证之前
+                .anyRequest().authenticated()
+                .and()
+                .formLogin();
+    }
+}
+```
+
+![image-20220314215907408](image/image-20220314215907408.png)
+
+> mvcMatchers(...)：匹配资源
+>
+> permitAll()：放行资源，无需认证授权即可访问
+>
+> anyRequest()：代表所有请求
+>
+> authenticated()：匹配的资源都需要认证
+>
+> formLogin()：开启表单认证
+>
+> **注意：放行资源必须在认证之前！！！**
