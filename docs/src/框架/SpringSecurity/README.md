@@ -396,3 +396,95 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 > formLogin()：开启表单认证
 >
 > **注意：放行资源必须在认证之前！！！**
+
+## 自定义登录页面
+
+> 引入thymeleaf模板引擎依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+```
+
+关闭 thymeleaf 缓存
+
+```properties
+spring.thymeleaf.cache=false
+```
+
+> 定义登录页Controller
+
+```
+@Controller
+public class LoginController {
+    @RequestMapping("/login.html")
+    public String login() {
+        return "login";
+    }
+}
+```
+
+> 编写自定义登录页
+
+```html
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录</title>
+</head>
+<body style="text-align: center">
+
+<h1>用户登录</h1>
+<form th:action="@{/doLogin}" method="post">
+    用户名：<input type="text" name="uname"> <br>
+    密码：<input type="text" name="pwd"> <br>
+    <input type="submit" value="登录">
+</form>
+
+</body>
+</html>
+```
+
+**注意：**
+
+- 表单 method 必须为 `post`，请求 action 默认为 `/login` 自定义为 `doLogin`
+- 用户名的 name 默认为 `username` 自定义为 `ename`
+- 密码的 name 默认为 `password` 自定义为 `pwd`
+
+> 配置 SpringSecurity 核心配置类
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .mvcMatchers("/index","/login.html").permitAll()  // 放行资源要写在认证之前
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .loginPage("/login.html")   // 指定登录页面
+                .loginProcessingUrl("/doLogin") // 指定了自定义登录页面必须指定登录请求地址
+                .usernameParameter("uname").passwordParameter("pwd") // 指定表单字段名
+                //.successForwardUrl("/index") // 认证成功跳转地址    forward
+                //.defaultSuccessUrl("/index")   // 认证成功跳转地址    redirect 重定向  注意：请求之前有地址，会有优先跳转之前的地址
+                .defaultSuccessUrl("/index", true)  // 无论请求之前是否有地址都进行重定向
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+**注意：**
+
+- 指定了自定义登录页面必须指定登录请求地址
+- `successForwardUrl` 和 `defaultSuccessUrl` 同时只能有一个
+- `successForwardUrl` 默认是 `forward` 跳转，浏览器地址栏不会变
+- `defaultSuccessUrl` 默认是 `redirect` 跳转，浏览器地址栏会发生变化
+- `defaultSuccessUrl` 请求之前有地址，会有优先跳转之前的地址
+- `defaultSuccessUrl` 可配置第二个参数，无论请求之前是否有地址都进行重定向
