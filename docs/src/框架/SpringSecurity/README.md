@@ -488,3 +488,71 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 - `defaultSuccessUrl` 默认是 `redirect` 跳转，浏览器地址栏会发生变化
 - `defaultSuccessUrl` 请求之前有地址，会有优先跳转之前的地址
 - `defaultSuccessUrl` 可配置第二个参数，无论请求之前是否有地址都进行重定向
+
+## 自定义登录成功处理
+
+前后端分离开发中登录成功后不需要返回跳转页面，一般是返回一段JSON数据通知前端。
+
+可通过自定义 `AuthenticationSuccessHandler` 实现
+
+```java
+public interface AuthenticationSuccessHandler {
+   /**
+    * Called when a user has been successfully authenticated.
+    * @param request the request which caused the successful authentication
+    * @param response the response
+    * @param authentication the <tt>Authentication</tt> object which was created during
+    * the authentication process.
+    */
+   void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+         Authentication authentication) throws IOException, ServletException;
+
+}
+```
+
+![image-20220317223525408](image/image-20220317223525408.png)
+
+**successForwardUrl 和 defaultSuccessUrl 也是它的子类实现**
+
+> 自定义 AuthenticationSuccessHandler 实现
+
+```java
+/**
+ * 自定义认证成功处理Handler
+ */
+public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+
+        JSONObject result = new JSONObject();
+        result.put("status", 200);
+        result.put("msg", "登录成功");
+        result.put("authentication", authentication);
+
+        // 写出数据
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().println(result);
+    }
+}
+```
+
+> 配置 successHandler
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                // ......
+                .successHandler(new MyAuthenticationSuccessHandler()) // 登录成功处理器  前后端分离处理方案
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+![image-20220317225637941](image/image-20220317225637941.png)
