@@ -556,3 +556,126 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 ```
 
 ![image-20220317225637941](image/image-20220317225637941.png)
+
+## 显示登陆失败信息
+
+> Spring Security 在登录失败后会根据具体的配置将异常信息存储到 `request` 或者 `session` 作用域中，其中的 `key` 为 `SPRING_SECURITY_LAST_EXCEPTION` ，源码可参考 `SimpleUrlAuthenticationFailureHandler`
+
+![image-20220320220337608](image/image-20220320220337608.png)
+
+> 显示异常信息 `login.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录</title>
+</head>
+<body style="text-align: center">
+<h5 style="color: red" th:text="${'request：' + SPRING_SECURITY_LAST_EXCEPTION}"></h5>
+<h5 style="color: red" th:text="${'session：' + session.SPRING_SECURITY_LAST_EXCEPTION}"></h5>
+<h1>用户登录</h1>
+<form th:action="@{/doLogin}" method="post">
+    用户名：<input type="text" name="uname"> <br>
+    密码：<input type="text" name="pwd"> <br>
+    <input type="submit" value="登录">
+</form>
+
+</body>
+</html>
+```
+
+> 核心配置
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+				// ......
+                .and()
+                .formLogin()
+                // ......
+                //.failureForwardUrl("/login.html") // 认证失败后跳转 forward   异常信息作用域 request
+                .failureUrl("/login.html") // 认证失败后跳转 redirect 异常信息作用域 session
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+- failureUrl、failureForwardUrl 关系 类似于 successForwardUrl、defaultSuccessUrl
+- failureUrl 认证失败后重定向，异常信息在 session中
+- failureForwardUrl 认证失败后 forward 跳转，异常信息在 request 
+
+![image-20220320221550100](image/image-20220320221550100.png)
+
+## 自定义登录失败处理
+
+和登录成功一样，前后端分离项目，一般 JSON 数据通知，不进行页面跳转
+
+可通过自定义 `AuthenticationFailureHandler` 实现
+
+```java
+public interface AuthenticationFailureHandler {
+
+   /**
+    * Called when an authentication attempt fails.
+    * @param request the request during which the authentication attempt occurred.
+    * @param response the response.
+    * @param exception the exception which was thrown to reject the authentication
+    * request.
+    */
+   void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
+         AuthenticationException exception) throws IOException, ServletException;
+
+}
+```
+
+![image-20220320222014065](image/image-20220320222014065.png)
+
+**failureUrl、failureForwardUrl  也是由它的子类实现。**
+
+> 自定义 `AuthenticationFailureHandler` 实现
+
+```java
+/**
+ * 自定义登录失败处理器
+ */
+public class MyAuthenticationFailureHandler implements AuthenticationFailureHandler {
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+        JSONObject result = new JSONObject();
+        result.put("status", 500);
+        result.put("msg", "登录失败：" + exception.getMessage());
+
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().println(result);
+    }
+}
+```
+
+> 配置 `failureHandler`
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                // ......
+                .failureHandler(new MyAuthenticationFailureHandler())   // 自定义认证失败后处理
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+![image-20220320222524823](image/image-20220320222524823.png)
+
