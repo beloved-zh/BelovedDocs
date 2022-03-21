@@ -679,3 +679,149 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 
 ![image-20220320222524823](image/image-20220320222524823.png)
 
+## 注销登录
+
+> 开启注销登录（默认开启）
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                // ......
+                .formLogin()
+                // ......
+                .and()
+                .logout() // 开启注销登录，获取到注销登录的对象
+                .logoutUrl("/logout") // 指定注销登录 url 默认必须 GET
+                .invalidateHttpSession(true) // session 会话失效  默认：true
+                .clearAuthentication(true) // 清除认证标记  默认：true
+                .logoutSuccessUrl("/login.html") // 注销登录成功后跳转地址
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+- `logout()` 开启注销登录
+- `logoutUrl` 指定注销登录 url 默认必须 GET 请求
+- `invalidateHttpSession` 退出时是否清除 session 。默认：true
+- `clearAuthentication`  退出时是否清除认证标记。  默认：true
+- `logoutSuccessUrl` 退出登录时跳转地址
+
+> 配置多个注销登录请求，同时还可以指定请求方式。
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                // ......
+                .formLogin()
+                // ......
+                .and()
+                .logout() // 开启注销登录，获取到注销登录的对象
+            	// 配置多个注销登录
+                .logoutRequestMatcher(new OrRequestMatcher(
+                        new AntPathRequestMatcher("/logout", "GET"),
+                        new AntPathRequestMatcher("/abc", "POST")
+                ))
+                .invalidateHttpSession(true) // session 会话失效  默认：true
+                .clearAuthentication(true) // 清除认证标记  默认：true
+                .logoutSuccessUrl("/login.html") // 注销登录成功后跳转地址
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+## 自定义注销登录处理器
+
+和登录成功一样，前后端分离项目，一般 JSON 数据通知，不进行页面跳转
+
+可通过自定义 `LogoutSuccessHandler` 实现
+
+```java
+public interface LogoutSuccessHandler {
+
+	void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+			throws IOException, ServletException;
+
+}
+
+```
+
+
+
+> 自定义 `LogoutSuccessHandler` 实现
+
+```java
+/**
+ * 自定义注销登录处理器
+ */
+public class myLogoutSuccessHandler implements LogoutSuccessHandler {
+    @Override
+    public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+        JSONObject result = new JSONObject();
+        result.put("status", 200);
+        result.put("msg", "注销成功");
+        result.put("authentication", authentication);
+
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().println(result);
+    }
+}
+```
+
+> 配置 logoutSuccessHandler
+
+```java
+package com.beloved.config;
+
+import com.beloved.handler.MyAuthenticationFailureHandler;
+import com.beloved.handler.MyAuthenticationSuccessHandler;
+import com.beloved.handler.myLogoutSuccessHandler;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                // ......
+                .formLogin()
+                // ......
+                .and()
+                .logout() // 开启注销登录，获取到注销登录的对象
+                //.logoutUrl("/logout") // 指定注销登录 url 默认必须 GET
+                // 配置多个注销登录
+                .logoutRequestMatcher(new OrRequestMatcher(
+                        new AntPathRequestMatcher("/logout", "GET"),
+                        new AntPathRequestMatcher("/abc", "POST")
+                ))
+                .invalidateHttpSession(true) // session 会话失效  默认：true
+                .clearAuthentication(true) // 清除认证标记  默认：true
+                //.logoutSuccessUrl("/login.html") // 注销登录成功后跳转地址
+                .logoutSuccessHandler(new myLogoutSuccessHandler())  // 自定义注销登录成功后处理
+                .and()
+                .csrf().disable()   // 禁止 csrf 跨站请求攻击保护
+        ;
+    }
+}
+```
+
+![image-20220321200635386](image/image-20220321200635386.png)
+
+
+
