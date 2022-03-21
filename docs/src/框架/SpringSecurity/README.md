@@ -825,3 +825,184 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 
 
 
+## 用户数据获取
+
+### SecurityContextHolder 
+
+SpringSecurity 会将登录用户数据保存在 Session 中。但是，为了使用方便，SpringSecurity 在此基础上还做了一些改进，其中最主要的一个变化就是线程绑定。当用户登录成功后，SpringSecurity 会将登录成功的用户信息保存到SecurityContextHolder 中。
+
+SecurityContextHolder 中的数据保存默认是通过 ThreadLocal 来实现的，使用 ThreadLocal 创建的变量只能被当前线程访问，不能被其他线程访问和修改，也就是用户数据和请求线程绑定在一起。当登录请求处理完毕后，SpringSecurity 会将 SecurityContextHolder 中的数据拿出来保存到 Session 中，同时将 SecurityContexHolder 中的数据清空。以后每当有请求到来时，SpringSecurity 就会先从 Session 中取出用户登录数据，保存到SecurityContextHolder 中，方便在该请求的后续处理过程中使用，同时在请求结束时将 SecurityContextHolder 中的数据拿出来保存到 Session 中，然后将 SecurityContextHolder 中的数据清空。
+
+> 实际上 SecurityContextHolder 中存储是 SecurityContext，在 SecurityContext 中存储是 Authentication
+
+![image-20220321204024834](image/image-20220321204024834.png)
+
+**典型的`策略模式`**
+
+```java
+public class SecurityContextHolder {
+
+   public static final String MODE_THREADLOCAL = "MODE_THREADLOCAL";
+   public static final String MODE_INHERITABLETHREADLOCAL = "MODE_INHERITABLETHREADLOCAL";
+   public static final String MODE_GLOBAL = "MODE_GLOBAL";
+   private static final String MODE_PRE_INITIALIZED = "MODE_PRE_INITIALIZED";
+   public static final String SYSTEM_PROPERTY = "spring.security.strategy";
+   private static String strategyName = System.getProperty(SYSTEM_PROPERTY);
+   private static SecurityContextHolderStrategy strategy;
+
+
+   private static void initializeStrategy() {
+      if (MODE_PRE_INITIALIZED.equals(strategyName)) {
+         Assert.state(strategy != null, "When using " + MODE_PRE_INITIALIZED
+               + ", setContextHolderStrategy must be called with the fully constructed strategy");
+         return;
+      }
+      if (!StringUtils.hasText(strategyName)) {
+         // Set default
+         strategyName = MODE_THREADLOCAL;
+      }
+      if (strategyName.equals(MODE_THREADLOCAL)) {
+         strategy = new ThreadLocalSecurityContextHolderStrategy();
+         return;
+      }
+      if (strategyName.equals(MODE_INHERITABLETHREADLOCAL)) {
+         strategy = new InheritableThreadLocalSecurityContextHolderStrategy();
+         return;
+      }
+      if (strategyName.equals(MODE_GLOBAL)) {
+         strategy = new GlobalSecurityContextHolderStrategy();
+         return;
+      }
+      // ......
+   }
+
+}
+```
+
+- `MODE THREADLOCAL`：这种存放策略是将 SecurityContext 存放在 ThreadLocal 中，Threadlocal 的特点是在哪个线程中存储就要在哪个线程中读取，非常适合 web 应用，因为在默认情况下，一个请求无论经过多少 Filter到达Servlet，都是由一个线程来处理的。这也是 SecurityContextHolder 的默认存储策略，这种存储策略意味着如果在具体的业务处理代码中，开启了子线程，在子线程中去获取登录用户数据，就会获取不到。
+
+- `MODE INHERITABLETHREADLOCAL` ：这种存储模式适用于多线程环境，如果希望在子线程中也能够获取到登录用户数据，那么可以使用这种存储模式。
+
+- `MODE GLOBAL`：这种存储模式实际上是将数据保存在一 个静态变量中，在 JavaWeb 开发中，这种模式很少使用到。
+
+### SecurityContextHolderStrategy
+
+通过 SecurityContextHolder 可以得知，SecurityContextHolderStrategy 接口用来定义存储策略。
+
+```java
+public interface SecurityContextHolderStrategy {
+   void clearContext();
+   SecurityContext getContext();
+   void setContext(SecurityContext context);
+   SecurityContext createEmptyContext();
+
+}
+```
+
+- `clearContext`：清除存储的 SecurityContext 对象
+- `getContext`：获取存储的 SecurityContext 对象
+- `setContext`：设置存储的 SecurityContext 对象
+- `createEmptyContext`：创建一个空的 SecurityContext 对象
+
+![image-20220321205032647](image/image-20220321205032647.png)
+
+每一个实现对于一中策略的实现。
+
+### 代码中获取
+
+```java
+@RestController
+public class HelloController {
+
+    @RequestMapping("/hello")
+    public String hello() {
+        // 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User)authentication.getPrincipal();
+        System.out.println("身份信息：" + user.getUsername());
+        System.out.println("权限信息：" + authentication.getAuthorities());
+        return "Hello SpringSecurity！";
+    }
+
+}
+```
+
+![image-20220321205802169](image/image-20220321205802169.png)
+
+### 多线程获取
+
+```java
+@RestController
+public class HelloController {
+
+    @RequestMapping("/hello")
+    public String hello() {
+        // 获取认证信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User)authentication.getPrincipal();
+        System.out.println("身份信息：" + user.getUsername());
+        System.out.println("权限信息：" + authentication.getAuthorities());
+
+        new Thread(() -> {
+            Authentication authentication1 = SecurityContextHolder.getContext().getAuthentication();
+            User user1 = (User)authentication1.getPrincipal();
+            System.out.println("t1身份信息：" + user1.getUsername());
+            System.out.println("t1权限信息：" + authentication1.getAuthorities());
+        }, "t1").start();
+
+        return "Hello SpringSecurity！";
+    }
+
+}
+```
+
+![image-20220321210407230](image/image-20220321210407230.png)
+
+**在子线程中获取需要设置第二种策略**
+
+![image-20220321210506901](image/image-20220321210506901.png)
+
+默认策略是通过 `System.getProperty` 加载的。可以通过增加 `VM Options` 参数设置
+
+```bash
+-Dspring.security.strategy=MODE_INHERITABLETHREADLOCAL
+```
+
+![image-20220321210832549](image/image-20220321210832549.png)
+
+### ![image-20220321210813530](image/image-20220321210813530.png)
+
+### 页面获取
+
+**引入依赖**
+
+```xml
+<!-- thymeleaf 整合 SpringSecurity -->
+<dependency>
+    <groupId>org.thymeleaf.extras</groupId>
+    <artifactId>thymeleaf-extras-springsecurity5</artifactId>
+    <version>3.0.4.RELEASE</version>
+</dependency>
+```
+
+**配置命名空间**
+
+```xml
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+```
+
+**页面使用**
+
+```html
+<!-- 认证用户信息 -->
+<ui>
+    <li sec:authentication="principal.username"></li>
+    <li sec:authentication="principal.authorities"></li>
+    <li sec:authentication="principal.accountNonExpired"></li>
+    <li sec:authentication="principal.accountNonLocked"></li>
+    <li sec:authentication="principal.credentialsNonExpired"></li>
+</ui>
+```
+
+![image-20220321211814809](image/image-20220321211814809.png)
