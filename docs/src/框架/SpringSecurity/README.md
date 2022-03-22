@@ -1006,3 +1006,54 @@ public class HelloController {
 ```
 
 ![image-20220321211814809](image/image-20220321211814809.png)
+
+# 自定义认证数据源
+
+## 认证流程分析
+
+[https://docs.spring.io/spring-security/reference/servlet/authentication/architecture.html](https://docs.spring.io/spring-security/reference/servlet/authentication/architecture.html)
+
+![abstractauthenticationprocessingfilter](image/abstractauthenticationprocessingfilter.png)
+
+- 发起认证请求，请求会被 `UsernamePasswordAuthenticationFilter` 拦截。
+- 在 `UsernamePasswordAuthenticationFilter` 的 `attemptAuthentication` 方法中将请求中的用户名和密码封装为 `Authentication` 对象，并交给 `AuthenticationManager` 进行认证。
+- 认证成功，将认证信息存储到 `SecurityContextHolder ` 以及记住我等，并回调 `AuthenticationSuccessHandler` 处理。
+- 认证失败，清除 `SecurityContextHolder` 以及 记住我 信息，回调 `AuthenticationFailureHandler` 处理。
+
+## 三者关系
+
+`AuthenticationManager` 是一个认证的核心类，但底层真正认证的是 `ProviderManager` 以及 `AuthenticationProvider`
+
+- `AuthenticationManager` 是一个认证管理器，定义了 SpringSecurity 过滤器要执行认证操作。
+- `ProviderManager` 是 `AuthenticationManager` 接口的实现类。SpringSecurity 认证默认使用的是`ProviderManager`。
+- `AuthenticationProvider` 针对不同的身份类型执行具体的身份认证。
+
+**AuthenticationManager 与 ProviderManager**
+
+![image-20220322203419484](image/image-20220322203419484.png)
+
+ProviderManager 是 AuthenticationManager  的唯一实现，也是 SpringSecurity 默认使用的实现。AuthenticationManager  就是一个 ProviderManager 。
+
+**ProviderManager 与 AuthenticationProvider**
+
+https://docs.spring.io/spring-security/reference/servlet/authentication/architecture.html
+
+![providermanager](image/providermanager.png)
+
+在 SpringSecurity 中，允许系统同时支持多种不同的认证方式，如同时支持用户名/密码认证、ReremberMe 认证、手机号码动态认证等，而不同的认证方式对应了不同的 AuthenticationProvider ，所以一个完整的认证流程可能由多个 AuthenticationProvider 来提供。
+
+多个 AuthenticationProvider 将组成一个列表，这个列表将由 ProviderManager 代理。在 ProviderManager 中存在一个 AuthenticationProvider 列表，在 ProviderManager 中遍历列表中的每一个 AuthenticationProvider 去执行身份认证，最终得到认证结果。
+
+ProviderManager 本身也可以再配置一个 AuthenticationManager 作为 parent，这样当 ProviderManager 认证失败之后，就可以进入到 parent 中再次进行认证。理论上来说，ProviderManager 的 parent 可以是任意类型的AuthenticationManager，但是通常都是由 ProviderManager 来扮演 parent 的角色，也就是 ProviderManager 是ProviderManager 的 parent 。
+
+ProviderManager 本身也可以有多个，多个 ProviderManager 共用同一个parent。有时，一个应用程序有受保护资源的逻辑组（例如，所有符合路径模式的网络资源，如/api/**），每个组可以有自己的专用 AuthenticationManager 。通常，每个组都是一个 ProviderManager，它们共享一个父级。父级是一种全局资源，作为所有提供者的后备资源。
+
+摘自官网: https://spring.io/guides/topicals/spring-security-architecture
+
+![ProviderManagers with a common parent](image/authentication.png)
+
+**默认情况下 AuthenticationProvider 是由 DaoAuthenticationProvider 类来实现认证的，在 DaoAuthenticationProvider 认证时又通过 UserDetailsService 完成数据源的校验。**
+
+![image-20220322204953600](image/image-20220322204953600.png)
+
+**总结：AuthenticationManager 是认证管理器，在 SpringSecurity 中有全局 AuthenticationManager，也可以有局部AuthenticationManager 。全局的 AuthenticationManager 用来对全局认证进行处理，局部的 AuthenticationManager用来对某些特殊资源认证处理。无论是全局认证管理器还是局部认证管理器都是由 ProviderManger 进行实现。每一个 ProviderManger 中都代理一个 AuthenticationProvider 的列表，列表中每一个实现代表一种身份认证方式。认证时底层数据源需要调用 UserDetailService 来实现。**
