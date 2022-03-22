@@ -1057,3 +1057,96 @@ ProviderManager 本身也可以有多个，多个 ProviderManager 共用同一�
 ![image-20220322204953600](image/image-20220322204953600.png)
 
 **总结：AuthenticationManager 是认证管理器，在 SpringSecurity 中有全局 AuthenticationManager，也可以有局部AuthenticationManager 。全局的 AuthenticationManager 用来对全局认证进行处理，局部的 AuthenticationManager用来对某些特殊资源认证处理。无论是全局认证管理器还是局部认证管理器都是由 ProviderManger 进行实现。每一个 ProviderManger 中都代理一个 AuthenticationProvider 的列表，列表中每一个实现代表一种身份认证方式。认证时底层数据源需要调用 UserDetailService 来实现。**
+
+## 配置全局 AuthenticationManager
+
+[https://spring.io/guides/topicals/spring-security-architecture](https://spring.io/guides/topicals/spring-security-architecture)
+
+> 默认的全局 AuthenticationManager
+>
+> - SpringBoot 对 Security 进行自动装配时自动在工厂中创建一个全局的 AuthenticationManager
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    // 如果使用的是默认创建的 AuthenticationManager ，检测到 UserDetailsService 将自动使用
+    @Bean
+    public UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+        userDetailsService.createUser(User.withUsername("abc").password("{noop}123").roles("admin").build());
+        return userDetailsService;
+    }
+
+    // SpringBoot 对 Security 默认配置中在工厂创建 AuthenticationManager
+    @Autowired
+    public void initialize(AuthenticationManagerBuilder builder) {
+        System.out.println("SpringBoot 自动配置：" + builder);
+    }
+}
+```
+
+**总结：**
+
+- 默认自动配置创建全局 `AuthenticationManager` 默认找当前项目中是否存在自定义 `UserDetailsService` 实例，存在将自动将前 `UserDetailsService` 实例设置为数据源
+- 默认自动配置创建全局 `AuthenticationManager` 在工厂中使用直接在代码中注入即可
+
+> 完全自定义全局 AuthenticationManager
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    // 如果使用的是默认创建的 AuthenticationManager ，检测到 UserDetailsService 将自动使用
+    @Bean
+    public UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+        userDetailsService.createUser(User.withUsername("abc").password("{noop}123").roles("admin").build());
+        return userDetailsService;
+    }
+
+    // 完全自定义 AuthenticationManager    不会在工厂中暴露
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        System.out.println("自定义AuthenticationManager：" + auth);
+        auth.userDetailsService(userDetailsService());
+    }
+}
+```
+
+**总结：**
+
+- 一旦通过 `configure` 方法自定义 `AuthenticationManager` 实现，就会将工厂中自动配置的 `AuthenticationManager` 进行覆盖。
+- 一旦通过 `configure` 方法自定义 `AuthenticationManager` 实现，需要在实现中指定认证数据源对象 `UserDetailsService` 实例。
+- 一旦通过 `configure` 方法自定义 `AuthenticationManager` 实现，这种方式创建 `AuthenticationManager` 工厂内部对象，不允许在其他自定义组件中进行注入使用。
+
+> 工厂中暴露自定义 AuthenticationManager 实例
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+
+    // 如果使用的是默认创建的 AuthenticationManager ，检测到 UserDetailsService 将自动使用
+    @Bean
+    public UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+        userDetailsService.createUser(User.withUsername("abc").password("{noop}123").roles("admin").build());
+        return userDetailsService;
+    }
+
+    // 完全自定义 AuthenticationManager    不会在工厂中暴露
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        System.out.println("自定义AuthenticationManager：" + auth);
+        auth.userDetailsService(userDetailsService());
+    }
+
+    // 将 AuthenticationManager 暴露在工厂中，在其余地方可以注入使用
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+}
+```
+
