@@ -1150,3 +1150,294 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 }
 ```
 
+## 自定义数据库数据源
+
+> 表结构
+
+```sql
+create table if not exists demo.role
+(
+    id     int auto_increment comment '角色id'
+        primary key,
+    name   varchar(32)  not null comment '角色名',
+    remark varchar(500) null comment '角色描述',
+    constraint role_name_uindex
+        unique (name)
+)
+    comment '角色表';
+
+create table if not exists demo.user
+(
+    id                    int auto_increment comment '用户id'
+        primary key,
+    username              varchar(32)  not null comment '用户名',
+    password              varchar(255) not null comment '密码',
+    enable                tinyint      not null comment '账号是否激活',
+    accountNonExpired     tinyint      not null comment '账号是否过期',
+    accountNonLocked      tinyint      not null comment '账号是否锁定',
+    credentialsNonExpired tinyint      not null comment '密码是否过期',
+    constraint user_username_uindex
+        unique (username)
+)
+    comment '用户表';
+
+create table if not exists demo.user_role
+(
+    id  int auto_increment comment '主键id'
+        primary key,
+    uid int not null comment '用户id',
+    rid int not null comment '角色id'
+)
+    comment '用户角色表';
+```
+
+> 测试数据
+
+```sql
+INSERT INTO demo.user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired) VALUES (1, 'root', '{noop}123456', 1, 1, 1, 1);
+INSERT INTO demo.user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired) VALUES (2, 'admin', '{noop}123456', 1, 1, 1, 1);
+INSERT INTO demo.user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired) VALUES (3, 'beloved', '{noop}123456', 1, 1, 1, 1);
+
+
+INSERT INTO demo.role (id, name, remark) VALUES (1, 'ROLE_ADMIN', '管理员');
+INSERT INTO demo.role (id, name, remark) VALUES (2, 'ROLE_VIP', 'VIP用户');
+INSERT INTO demo.role (id, name, remark) VALUES (3, 'ROLE_USER', '普通用户');
+
+
+INSERT INTO demo.user_role (id, uid, rid) VALUES (1, 1, 1);
+INSERT INTO demo.user_role (id, uid, rid) VALUES (2, 1, 2);
+INSERT INTO demo.user_role (id, uid, rid) VALUES (3, 2, 2);
+INSERT INTO demo.user_role (id, uid, rid) VALUES (4, 3, 3);
+```
+
+> 相关依赖
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid-spring-boot-starter</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+</dependency>
+```
+
+> 数据库连接等配置
+
+```properties
+server.port=8081
+
+# 关闭 thymeleaf 缓存
+spring.thymeleaf.cache=false
+
+# 数据源
+# 数据源配置
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://127.0.0.1:3306/demo?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+spring.datasource.username=root
+spring.datasource.password=123456
+
+# mybatis
+# 扫描mapper资源
+mybatis.mapper-locations=classpath:mapper/*.xml
+# 别名
+mybatis.type-aliases-package=com.beloved.entity
+
+# 日志
+# 设置日志级别
+logging.level.com.beloved = debug
+```
+
+> 对应 entity
+>
+> - 自定义 User 继承 UserDetails 实现其对应方法
+> - UserDetails 已对部分属性提供了 get 方法
+
+```java
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+public class User implements UserDetails {
+
+    @Getter
+    private Integer id;
+
+    // 用户名
+    private String username;
+
+    // 密码
+    private String password;
+
+    // 账号是否激活
+    private Boolean enable;
+
+    // 账号是否过期
+    private Boolean accountNonExpired;
+
+    // 账号是否锁定
+    private Boolean accountNonLocked;
+
+    // 密码是否过期
+    private Boolean credentialsNonExpired;
+
+    // 用户所属角色
+    @Getter
+    private List<Role> roles = new ArrayList<>();
+
+    // 返回权限信息
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+
+        roles.forEach(role -> {
+            SimpleGrantedAuthority simpleGrantedAuthority = new SimpleGrantedAuthority(role.getName());
+            authorities.add(simpleGrantedAuthority);
+        });
+
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return accountNonExpired;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return accountNonLocked;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return credentialsNonExpired;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enable;
+    }
+}
+```
+
+```java
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Role {
+
+    private Integer id;
+    private String name;
+    private String remark;
+
+}
+```
+
+> 创建Mapper接口及对应 xml
+
+```java
+public interface UserMapper {
+
+    // 根据用户名返回用户
+    User loadUserByUsername(String username);
+
+    // 根据用户id查询角色
+    List<Role> getRolesByUid(Integer uid);
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+    "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+
+<mapper namespace="com.beloved.mapper.UserMapper">
+    
+    <select id="loadUserByUsername" resultType="User">
+        select *
+        from user
+        where username = #{username}
+    </select>
+
+    <select id="getRolesByUid" resultType="Role">
+        select r.*
+        from role r
+        left join user_role ur
+        on r.id = ur.rid
+        where ur.uid = #{uid}
+    </select>
+</mapper>
+```
+
+> 自定义 UserDetailsService 
+
+```java
+@Component
+public class MyUserDetailsServer implements UserDetailsService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        // 查询用户
+        User user = userMapper.loadUserByUsername(username);
+
+        if (ObjectUtils.isEmpty(user)) {
+            throw new UsernameNotFoundException("用户不存在！！！");
+        }
+
+        // 查询角色
+        List<Role> roles = userMapper.getRolesByUid(user.getId());
+        user.setRoles(roles);
+
+        return user;
+    }
+}
+```
+
+> 配置使用自定义 UserDetailsService
+
+```java
+@Configuration
+public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+    @Autowired
+    private MyUserDetailsServer myUserDetailsServer;
+
+    // 完全自定义 AuthenticationManager    不会在工厂中暴露
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        System.out.println("自定义AuthenticationManager：" + auth);
+        auth.userDetailsService(myUserDetailsServer);
+    }
+
+    // ......
+ 
+}
+
+```
