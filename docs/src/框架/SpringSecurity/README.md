@@ -970,7 +970,7 @@ public class HelloController {
 
 ![image-20220321210832549](image/image-20220321210832549.png)
 
-### ![image-20220321210813530](image/image-20220321210813530.png)
+![image-20220321210813530](image/image-20220321210813530.png)
 
 ### 页面获取
 
@@ -1150,6 +1150,94 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 }
 ```
 
+## 自定义数据库数据源
+
+> 设计表结构
+
+```mysql
+create table if not exists role
+(
+    id     int auto_increment comment '角色id'
+        primary key,
+    name   varchar(32)  not null comment '角色名',
+    remark varchar(500) null comment '角色描述',
+    constraint role_name_uindex
+        unique (name)
+)
+    comment '角色表';
+
+create table if not exists user
+(
+    id                    int auto_increment comment '用户id'
+        primary key,
+    username              varchar(32)  not null comment '用户名',
+    password              varchar(255) not null comment '密码',
+    enable                tinyint      not null comment '账号是否激活',
+    accountNonExpired     tinyint      not null comment '账号是否过期',
+    accountNonLocked      tinyint      not null comment '账号是否锁定',
+    credentialsNonExpired tinyint      not null comment '密码是否过期',
+    constraint user_username_uindex
+        unique (username)
+)
+    comment '用户表';
+
+create table if not exists user_role
+(
+    id  int auto_increment comment '主键id'
+        primary key,
+    uid int not null comment '用户id',
+    rid int not null comment '角色id'
+)
+    comment '用户角色表';
+```
+
+> 测试数据
+
+```mysql
+INSERT INTO user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired)
+VALUES (1, 'root', '{noop}123', 1, 1, 1, 1);
+INSERT INTO user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired)
+VALUES (2, 'admin', '{noop}123', 1, 1, 1, 1);
+INSERT INTO user (id, username, password, enable, accountNonExpired, accountNonLocked, credentialsNonExpired)
+VALUES (3, 'beloved', '{noop}123', 1, 1, 1, 1);
+
+INSERT INTO role (id, name, remark)
+VALUES (1, 'ROLE_ADMIN', '管理员');
+INSERT INTO role (id, name, remark)
+VALUES (2, 'ROLE_VIP', 'VIP用户');
+INSERT INTO role (id, name, remark)
+VALUES (3, 'ROLE_USER', '普通用户');
+
+INSERT INTO user_role (id, uid, rid)
+VALUES (1, 1, 1);
+INSERT INTO user_role (id, uid, rid)
+VALUES (2, 1, 2);
+INSERT INTO user_role (id, uid, rid)
+VALUES (3, 2, 2);
+INSERT INTO user_role (id, uid, rid)
+VALUES (4, 3, 3);
+```
+
+> 加入数据库相关依赖
+
+```xml
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>2.2.2</version>
+</dependency>
+
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid-spring-boot-starter</artifactId>
+    <version>1.2.8</version>
+</dependency>
+
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+</dependency>
+```
 ## 自定义数据库数据源
 
 > 表结构
@@ -1441,3 +1529,243 @@ public class WebSecurityConfigurer extends WebSecurityConfigurerAdapter {
 }
 
 ```
+
+# 密码加密
+
+## 常见方案
+
+> Hash 算法
+
+最早使用类似 SHA-256、SHA-512、MD5 等这样的单向 Hash 算法。用户注册成功后，保存在数据库中不再是用户的明文密码，而是经过 SHA-256 加密计算的一个字行串，当用户进行登录时，用户输入的明文密码用SHA-256进行加密，加密完成之后，再和存储在数据库中的密码进行比对，进而确定用户登录信息是否有效。如果系统遭遇攻击，最多也只是存储在数据库中的密文被泄漏。
+由于彩虹表这种攻击方式的存在以及随着计算机硬件的发展，每秒执行数十亿次 HASH计算己经变得轻轻松松，这意味着即使给密码加密加盐也不再安全。
+参考：[彩虹表](https://baike.baidu.com/item/%E5%BD%A9%E8%99%B9%E8%A1%A8/689313?fr=aladdin)
+
+> 单向自适应函数
+
+在 SpringSecurity 中，使用自适应单向函数（Adaptive One-way Functions）来处理密码问题，这种自适应单向函数在进行密码匹配时，会有意占用大量系统资源（例如CPU、内存等），这样可以增加恶意用户攻击系统的难度。开发者可以通过 bcrypt、PBKDF2、sCrypt 以及 argon2 来体验这种自适应单向函数加密。由于自适应单向函数有意占用大量系统资源，因此每个登录认证请求都会大大降低应用程序的性能，但是 Spring Secuity 不会采取任何措施来提高密码验证速度，因为它正是通过这种方式来增强系统的安全性。
+参考1：https://byronhe.gitbooks.io/libsodium/content/password_hashing/
+参考2：https://github.com/xitu/gold-miner/blob/master/TODO1/password-hashing-pbkdf2-scrypt-bcrypt-and-argon2.md
+
+- BCryptPasswordEncoder
+
+  BCryptPasswordEncoder 使用 bcrypt 算法对密码进行加密，为了提高密码的安全性，bcrypt 算法故意降低运行速度，以增强密码破解的难度。同时 BCryptP asswordEncoder “为自己带盐” 开发者不需要额外维护一个 “盐” 字段，使用 BCryptPasswordEncoder 加密后的字符串就已经 “带盐” 了，即使相同的明文每次生成的加密字符串都不相同。
+
+- Argon2PasswordEncoder
+
+  Argon2PasswordEncoder 使用 Argon2 算法对密码进行加密，Argon2 曾在 Password Hashing Competition 竞赛中获胜。为了解决在定制硬件上密码容易被破解的问题，Argon2也是故意降低运算速度，同时需要大量内存，以确保系统的安全性。
+
+- Pbkdf2PasswordEncoder
+
+  Pbkdf2PasswordEncoder 使用 PBKDF2 算法对密码进行加密，和前面几种类似，PBKDF2 算法也是一种故意降低运算速度的算法，当需要 FIPS (Federal Information Processing Standard，美国联邦信息处理标准）认证时，PBKDF2 算法是一个很好的选择。
+
+- SCryptPasswordEncoder
+
+  SCryptPasswordEncoder 使用scrypt 算法对密码进行加密，和前面的几种类似，serypt 也是一种故意降低运算速度的算法，而且需要大量内存。
+
+## PasswordEncoder
+
+```java
+public interface PasswordEncoder {
+
+   String encode(CharSequence rawPassword);
+
+   boolean matches(CharSequence rawPassword, String encodedPassword);
+    
+   default boolean upgradeEncoding(String encodedPassword) {
+      return false;
+   }
+
+}
+```
+
+- encode：明文密码加密
+- matches：密码比较
+- upgradeEncoding：更新密码
+
+![image-20220327140404138](image/image-20220327140404138.png)
+
+> 密码认证入口：`AbstractUserDetailsAuthenticationProvider#additionalAuthenticationChecks()`
+
+![image-20220327140637279](image/image-20220327140637279.png)
+
+> 默认实现是 `DaoAuthenticationProvider#additionalAuthenticationChecks()`
+>
+> `PasswordEncoder` 的默认实现是 `DelegatingPasswordEncoder`
+
+![image-20220327140955151](image/image-20220327140955151.png)
+
+## 默认实现
+
+> `WebSecurityConfigurerAdapter` 的内部类 `LazyPasswordEncoder#getPasswordEncoder()` 会获取`PasswordEncoder` 如果 IOC 中没有则会获取默认的实现 `PasswordEncoderFactories.createDelegatingPasswordEncoder()`。
+>
+> 默认实现就是：`DelegatingPasswordEncoder`
+
+![image-20220327143149113](image/image-20220327143149113.png)
+
+![image-20220327143346582](image/image-20220327143346582.png)
+
+## DelegatingPasswordEncoder
+
+> 会先获取密码的加密方式（id）。其中 `idToPasswordEncoder` 存储着所有的加密方式的实现。
+>
+> DelegatingPasswordEncoder 只是一个代理类，而并非是一种加密方案。主要代理不同的密码加密方案。
+
+![image-20220327141243936](image/image-20220327141243936.png)
+
+- 兼容性：使用 DelegatingPasswrordEncoder 可以帮助许多使用旧密码加密方式的系统顺利迁移到 Spring security 中，它允许在同一个系统中同时存在多种不同的密码加密方案。
+- 便捷性：密码存储的最佳方案不可能一直不变，如果使用 DelegatingPasswordEncoder 作为默认的密码加密方案，当需要修改加密方案时，只需要修改很小一部分代码就可以实现。
+
+> 使用这种加密需要在返回的密码前加密码的加密规则：`{xxx}xxx`
+>
+> 推荐使用这种更加灵活
+
+![image-20220327144056273](image/image-20220327144056273.png)
+
+## 指定密码加密
+
+通过前面分析在获取 PasswordEncoder 时会去 IOC 中获取没有则默认是 DelegatingPasswordEncoder 。
+
+只要在 IOC 中注入指定的 PasswordEncoder  则可替换
+
+```java
+@Configuration
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+       // ...
+    }
+}
+```
+
+![image-20220327143835414](image/image-20220327143835414.png)
+
+> 指定加密规则之后返回的密码不能前不能带加密规则
+
+![image-20220327144203189](image/image-20220327144203189.png)
+
+## 密码自动升级
+
+使用 `DelegatingPasswrordEncoder ` 时可以进行自动升级密码的加密方案，当用户登录成功后可根据配置的自动进行升级。
+
+> 认证成功后会创建认证成功通知 `DaoAuthenticationProvider#createSuccessAuthentication()`
+
+![image-20220327152657985](image/image-20220327152657985.png)
+
+> 判断用户是否需要修改密码
+>
+> - `this.userDetailsPasswordService != null` ：是否有 `UserDetailsPasswordService`
+> - `this.passwordEncoder.upgradeEncoding(user.getPassword())`：判断用户当前的密码编码是否和指定的编码一致。
+>   - `idForEncode`：默认使用的编码格式。创建 `PasswordEncoder` 实例时指定的
+
+![image-20220327153038487](image/image-20220327153038487.png)
+
+![image-20220327153337032](image/image-20220327153337032.png)
+
+![image-20220327153626297](image/image-20220327153626297.png)
+
+> 调用指定的编码进行密码修改
+
+![image-20220327153753410](image/image-20220327153753410.png)
+
+![image-20220327153845681](image/image-20220327153845681.png)
+
+> 自定义 `UserDetailsPasswordService`
+
+```java
+@Service
+public class MyUserDetailsService implements UserDetailsService, UserDetailsPasswordService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userMapper.loadUserByUsername(username);
+        if (ObjectUtils.isEmpty(user)) {
+            throw new UsernameNotFoundException("用户不存在！！！");
+        }
+
+        user.setRoles(userMapper.getRolesByUid(user.getId()));
+
+        return user;
+    }
+
+    @Override
+    public UserDetails updatePassword(UserDetails userDetails, String newPassword) {
+        User user = (User)userDetails;
+        Integer i = userMapper.updatePassword(user.getId(), newPassword);
+
+        if (i == 1) {
+            user.setPassword(newPassword);
+        }
+
+        return user;
+    }
+}
+```
+
+> 配置
+
+```java
+@Configuration
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+
+    @Autowired
+    private MyUserDetailsService userDetailsService;
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService);
+    }
+
+}
+```
+
+> 指定默认编码
+>
+> 默认提供的是 `bcrypt` 编码，如果需要修改只需要自定义注入 `PasswordEncoder`，修改默认的 `encodingId` 即可。还可以自定义编码
+
+```java
+@Configuration
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        String encodingId = "MD5";
+        Map<String, PasswordEncoder> encoders = new HashMap<>();
+        encoders.put("bcrypt", new BCryptPasswordEncoder());
+        encoders.put("ldap", new org.springframework.security.crypto.password.LdapShaPasswordEncoder());
+        encoders.put("MD4", new org.springframework.security.crypto.password.Md4PasswordEncoder());
+        encoders.put("MD5", new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("MD5"));
+        encoders.put("noop", org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance());
+        encoders.put("pbkdf2", new Pbkdf2PasswordEncoder());
+        encoders.put("scrypt", new SCryptPasswordEncoder());
+        encoders.put("SHA-1", new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-1"));
+        encoders.put("SHA-256",
+                new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-256"));
+        encoders.put("sha256", new org.springframework.security.crypto.password.StandardPasswordEncoder());
+        encoders.put("argon2", new Argon2PasswordEncoder());
+        return new DelegatingPasswordEncoder(encodingId, encoders);
+    }
+
+    @Autowired
+    private MyUserDetailsService userDetailsService;
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService);
+    }
+
+}
+```
+
+![image-20220327154340693](image/image-20220327154340693.png)
+
+登录成功后密码自动更新为指定编码。
