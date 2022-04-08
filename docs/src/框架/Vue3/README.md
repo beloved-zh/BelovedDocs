@@ -66,7 +66,12 @@ vue create <project-name>
 
 - 组件不在需要唯一根标签，可以存在多个根标签
 - 组合式 API 使用前都需要导入
-- 
+
+## 生命周期
+
+> Vue3 新增了 `beforeUnmount` 和 `unmounted` 。其实就是对应 Vue2 的 `beforeDestroy` 和 `destroyed`
+
+![实例的生命周期](image/lifecycle.svg+xml)
 
 # Composition API
 
@@ -102,6 +107,122 @@ export default defineComponent({
     return {
       number
     }
+  }
+});
+</script>
+```
+
+### 生命周期
+
+> Vue3 中的生命周期钩子除了和 Vue2 选项式API 一样的写法外，还可以在 setup 中使用组合式API 定义生命周期钩子。
+>
+> - setup 执行是在 `beforeCreate` 之前执行，此时组件还没有创建
+> - setup 中不能使用 `this` ，执行时组件没有创建 `this = undefined` 
+> - 生命周期钩子前面加上 `on` 来访问组件的生命周期钩子 
+> - `beforeCreate`、`created` 这两个没有对应的组合式 API 的生命周期钩子，其实可以吧 `setup ` 看作对应的钩子。
+> - 组合式 API 生命周期钩子函数比选项式的执行时间靠前
+
+| 选项式 API        | Hook inside `setup` |
+| ----------------- | ------------------- |
+| `beforeCreate`    | Not needed*         |
+| `created`         | Not needed*         |
+| `beforeMount`     | `onBeforeMount`     |
+| `mounted`         | `onMounted`         |
+| `beforeUpdate`    | `onBeforeUpdate`    |
+| `updated`         | `onUpdated`         |
+| `beforeUnmount`   | `onBeforeUnmount`   |
+| `unmounted`       | `onUnmounted`       |
+| `errorCaptured`   | `onErrorCaptured`   |
+| `renderTracked`   | `onRenderTracked`   |
+| `renderTriggered` | `onRenderTriggered` |
+| `activated`       | `onActivated`       |
+| `deactivated`     | `onDeactivated`     |
+
+![image-20220408124625917](image/image-20220408124625917.png)
+
+```vue
+<template>
+  <h2>setup</h2>
+  {{number}} <br><br>
+  <button @click="number++">修改数据</button>
+</template>
+
+<script lang="ts">
+import {
+  defineComponent,
+  onBeforeMount,
+  onBeforeUnmount,
+  onBeforeUpdate,
+  onMounted, onUnmounted,
+  onUpdated,
+  reactive,
+  ref
+} from 'vue';
+
+// 生命周期钩子
+export default defineComponent({
+  name: 'App',
+  setup () {
+    // 在组件创建前执行
+    console.log('setup')
+    // 没有this
+    console.log('this==>', this)
+
+    let number = ref(10)
+
+    // 生命周期钩子前面加上 `on` 来访问组件的生命周期钩子
+    onBeforeMount(() => {
+      console.log('onBeforeMount')
+    })
+
+    onMounted(() => {
+      console.log('onMounted')
+    })
+
+    onBeforeUpdate(() => {
+      console.log('onBeforeUpdate')
+    })
+
+    onUpdated(() => {
+      console.log('onUpdated')
+    })
+
+    onBeforeUnmount(() => {
+      console.log('onBeforeUnmount')
+    })
+
+    onUnmounted(() => {
+      console.log('onUnmounted')
+    })
+
+    
+    return {
+      number
+    }
+  },
+  beforeCreate() {
+    console.log('beforeCreate')
+  },
+  created() {
+    console.log('created')
+  },
+  beforeMount() {
+    console.log('beforeMount')
+  },
+  mounted() {
+    console.log('mounted')
+  },
+  beforeUpdate() {
+    console.log('beforeUpdate')
+  },
+  updated() {
+    console.log('updated')
+  },
+  beforeUnmount() {
+    console.log('beforeUnmount')
+  },
+  unmounted() {
+    console.log('unmounted')
   }
 });
 </script>
