@@ -228,6 +228,162 @@ export default defineComponent({
 </script>
 ```
 
+### 返回值
+
+> - 一般返回一个对象，其中包含属性和方法，供模板使用
+> - setup 中返回的属性和方法会和 Vue2 中选项式 API 中的属性和方法合并，同名的话  setup 中的优先级高
+> - 选项式 API 中可以访问 setup 返回的属性和方法。setup 中不能访问选项式 API 中的属性和方法
+> - setup不能是一个async函数：因为返回值不再是return的对象，而是promise，模板看不到return对象中的属性数据
+
+```vue
+<template>
+  <h2>setup</h2>
+  number：{{number}} <br><br>
+  name：{{name}} <br><br>
+  age：{{age}} <br><br>
+  <button @click="update">修改数据</button>
+  <button @click="update1">修改数据1</button>
+</template>
+
+<script lang="ts">
+import {
+  defineComponent,
+  onBeforeMount,
+  onBeforeUnmount,
+  onBeforeUpdate,
+  onMounted, onUnmounted,
+  onUpdated,
+  reactive,
+  ref
+} from 'vue';
+
+export default defineComponent({
+  name: 'App',
+  data () {
+    return {
+      number: 5,
+      name: '张三'
+    }
+  },
+  setup () {
+
+    let number = ref(3)
+
+    let age = ref(10)
+
+    let update = () => {
+      number.value++
+
+      // setup 中不能访问 选项式 API 的属性或方法
+      // name += '!'
+    }
+
+    return {
+      number,
+      age,
+      update
+    }
+  },
+  methods: {
+    update1 () {
+      // 选项式 API 可以访问 setup 返回的属性和方法
+      this.number++
+      this.name += "!"
+      this.age++
+      this.update()
+    }
+  }
+});
+</script>
+```
+
+### 参数
+
+> - `props`：接收父组件传递子组件的值，并且是使用 props 接收的参数。是响应式的数据，不能用 ES6 解构
+> - `context`：普通 JavaScript 对象，暴露了其它可能在 `setup` 中有用的值，不是响应式的可以使用 ES6 解构
+>   - `attrs`：接收父组件传递子组件的值，并且没有在 props 接收的参数。相当于 `this.$attrs`
+>   - `emit`：用来分发自定义事件的函数。相当于 `this.$emit`
+>   - `expose`：该函数允许通过公共组件实例暴露特定的 property。
+>   - `slots`：包含所有传入的插槽内容的对象。 相当于 `this.$slots`
+
+`App.vue`
+
+```vue
+<template>
+  <h2>父组件</h2>
+  number：{{number}}<br><br>
+  <button @click="number++">更新数据</button>
+  <hr>
+  <Child :number="number" test="test" @emitUpdate="emitUpdate"></Child>
+</template>
+
+<script lang="ts">
+import {
+  defineComponent,
+  ref
+} from 'vue';
+import Child from "@/components/Child.vue";
+
+export default defineComponent({
+  name: 'App',
+  components: {
+    Child
+  },
+  setup () {
+
+    let number = ref(10)
+
+    let emitUpdate = (val:number) => {
+      console.log(val)
+      number.value += val
+    }
+
+    return {
+      number,
+      emitUpdate
+    }
+  }
+});
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <h2>子组件</h2>
+  number：{{number}}<br><br>
+  <button @click="updateNumber">更新数据</button>
+</template>
+
+<script>
+export default {
+  name: "Child",
+  props: ['number'],
+  // setup (props, context) {
+  //   console.log("context：", context)
+  setup (props, {attrs, emit, expose, slots}) {
+    console.log('Child ----- setup ----- init')
+    console.log("poops：", props)
+    console.log("attrs：", attrs);
+    console.log("emit：", emit);
+    console.log("expose：", expose);
+    console.log("slots：", slots);
+
+    let updateNumber = () => {
+      emit('emitUpdate', 10)
+    }
+
+    return {
+      updateNumber
+    }
+  }
+}
+</script>
+```
+
+
+
 ## ref
 
 > `ref`：定义一个响应式数据（基本类型 / 对象）
