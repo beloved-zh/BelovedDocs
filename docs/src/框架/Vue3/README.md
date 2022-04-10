@@ -653,6 +653,88 @@ export default {
 </script>
 ```
 
+### toRef
+
+> 可以用来为源响应式对象上的某个 property 新创建一个 [`ref`](https://v3.cn.vuejs.org/api/refs-api.html#ref)。然后，ref 可以被传递，它会保持对其源 property 的响应式连接。
+>
+> 从源响应式对象上的某个 property 结构一个 ref
+
+```vue
+<template>
+  Object：{{user}}<br><br>
+  wife：{{wife}}<br><br>
+  <button @click="update">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { reactive, toRef } from 'vue'
+
+  let user = reactive({
+    name: '张三',
+    wife: {
+      name: '小红'
+    }
+  })
+
+  // 从源响应式对象上的某个 property 结构一个 ref
+  let wife = toRef(user, 'wife')
+
+  const update = () => {
+
+    // 修改结构对象也会改变原始对象
+    wife.value.name += '!'
+
+    console.log('wife', wife);
+    console.log('user：', user);  
+  }
+
+</script>
+
+```
+
+### toRefs
+
+> 将响应式对象转换为普通对象，其中结果对象的每个 property 都是指向原始对象相应 property 的 [`ref`](https://v3.cn.vuejs.org/api/refs-api.html#ref)。
+>
+> 将源响应式对象上的所有 property 结构成 ref
+
+```vue
+<template>
+  Object：{{user}}<br><br>
+  name：{{name}}<br><br>
+  name：{{wife}}<br><br>
+  <button @click="update">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { reactive, toRefs } from 'vue'
+
+  let user = reactive({
+    name: '张三',
+    wife: {
+      name: '小红'
+    }
+  })
+
+  // 将源响应式对象上的所有 property 结构成 ref
+  let {name, wife} = toRefs(user)
+
+  const update = () => {
+
+    // 修改结构对象也会改变原始对象
+    name.value += '1'
+    wife.value.name += '!'
+
+    console.log('name', name);
+    console.log('wife', wife);
+    console.log('user：', user);  
+  }
+
+</script>
+```
+
+
+
 ## reactive
 
 > reactive：
@@ -806,7 +888,38 @@ export default {
 </script>
 ```
 
+### toRaw
 
+> 返回 [`reactive`](https://v3.cn.vuejs.org/api/basic-reactivity.html#reactive) 或 [`readonly`](https://v3.cn.vuejs.org/api/basic-reactivity.html#readonly) 代理的原始对象。这是一个“逃生舱”，可用于临时读取数据而无需承担代理访问/跟踪的开销，也可用于写入数据而避免触发更改。**不**建议保留对原始对象的持久引用。请谨慎使用。
+
+![image-20220410211908389](image/image-20220410211908389.png)
+
+```vue
+<template>
+</template>
+
+<script setup lang="ts">
+  import { reactive, toRaw, isReactive, isProxy } from 'vue'
+
+  let user = reactive({
+    name: '张三',
+    wife: {
+      name: '小红'
+    }
+  })
+  // 将响应式对象转为原始对象
+  let copyUser = toRaw(user)
+
+  console.log(user)
+  console.log(isProxy(user))
+  console.log(isReactive(user))
+
+  console.log(copyUser)
+  console.log(isProxy(copyUser))
+  console.log(isReactive(copyUser))
+  
+</script>
+```
 
 ## Vue2 与 Vue3 的响应式
 
