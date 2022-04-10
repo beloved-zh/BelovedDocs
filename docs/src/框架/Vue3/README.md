@@ -478,60 +478,184 @@ export default {
 
 ## ref
 
-> `ref`：定义一个响应式数据（基本类型 / 对象）
->
-> - 语法：` const xxx = ref(initValue)`
-> - js 中操作数据：`xxx.value`
-> - 模板中操作数据：不需要 `.value`
-> - 一般用来定义一个基本类型的响应式数据
+`ref`：接收一个值返回响应式可变 Ref 对象。ref 对象仅有一个 `.value` property，指向该内部值。
 
-![image-20220407214735248](image/image-20220407214735248.png)
+- 一般用来定义一个基本类型的响应式数据
+
+> 直接定义属性不是响应式数据，操作数据改变，页面不同步渲染
+
+![image-20220410172505504](image/image-20220410172505504.png)
 
 ```vue
 <template>
-  <h2>Ref使用</h2>
-  {{n1}}  <button @click="addN1">点击+1</button> <br><br>
-  {{n2}}  <button @click="addN2">点击+1</button> <br><br>
+  number：{{ number }} <br><br>
+  <button @click="numberAdd">更新数据</button>
 </template>
 
-<script lang="ts">
-// defineComponent 函数，定义一个组件
-import {defineComponent, ref} from 'vue';
+<script setup lang="ts">
+ 
+  let number:number = 10
 
-export default defineComponent({
-  name: 'App',
-  setup () {
-    // 非响应式数据
-    let n1 = 10
-    // 数据变化但是页面不进行渲染
-    function addN1() {
-      console.log('n1++ before：', n1)
-      n1++
-      console.log('n1++ after：', n1)
-    }
-
-    // ref 定义一个响应式数据，返回 Ref 对象，对象中有 value 属性
-    //    - 一般是定义基本类型数据
-    //    - 操作数据需要调用对象的 value 属性
-    //    - 模板中使用数据不需要 .value
-    let n2 = ref(10)
-    function addN2() {
-      console.log('n2++ before：', n2)
-      // n2++   Ref 返回的是对象，不能对对象进行++
-      n2.value++
-      console.log('n2++ after：', n2)
-    }
-    
-    return {
-      n1,
-      addN1,
-      n2,
-      addN2
-    }
+  const numberAdd = () => {
+    number++
+    console.log(number);
   }
-});
+
 </script>
 ```
+
+> 定义响应式数据
+>
+> - js 中操作数据：`xxx.value`
+> - 模板中操作数据：不需要 `.value`
+
+![image-20220410173051485](image/image-20220410173051485.png)
+
+```vue
+<template>
+  number：{{ number }} <br><br>
+  <button @click="numberAdd">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { Ref, ref } from 'vue'
+
+  let number = ref<number>(10)
+
+  // let number:Ref<number> = ref(10)
+
+  const numberAdd = () => {
+    number.value++
+    console.log(number)
+  }
+
+</script>
+```
+
+### isRef
+
+> 判断是不是一个 ref 对象
+
+![image-20220410173830396](image/image-20220410173830396.png)
+
+```vue
+<script setup lang="ts">
+  import { isRef, Ref, ref } from 'vue'
+
+  let number = ref<number>(10)
+  
+  let msg = 'hello'
+
+  console.log('number：', isRef(number))
+  console.log('msg：', isRef(msg))
+  
+</script>
+```
+
+### shallowRef
+
+> 创建一个跟踪自身 `.value` 变化的 ref，但不会使其值也变成响应式的。
+
+```vue
+<template>
+  user{{ user }} <br><br>
+  <button @click="update">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { shallowRef } from 'vue'
+
+  let user = shallowRef({
+    name: '张三'
+  })
+
+  const update = () => {
+    // 其 .value 是响应式 但内部的值不是响应式
+    // user.value.name = '李四'     // 不是响应式修改
+    user.value = {                  // 响应式
+        name: '李四'
+    }
+    console.log(user)
+  }
+
+</script>
+```
+
+### triggerRef
+
+> 强制更新页面DOM。可以与 shallowRef 配合使用
+
+```vue
+<template>
+  user{{ user }} <br><br>
+  <button @click="update">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { shallowRef, triggerRef  } from 'vue'
+
+  let user = shallowRef({
+    name: '张三'
+  })
+
+  
+  const update = () => {
+    
+    // 非响应式
+    user.value.name = '李四'
+
+    console.log(user)
+
+    // 强制更新 DOM
+    triggerRef(user)
+  }
+
+</script>
+```
+
+# customRef
+
+> - `customRef` 用于自定义返回一个 ref 对象，可以显式地控制依赖追踪和触发响应，接受工厂函数
+> - 两个参数分别是用于追踪的 `track` 与用于触发响应的 `trigger`，并返回一个带有 `get` 和 `set` 属性的对象
+> - 通过 `customRef` 返回的 ref 对象，和正常 ref 对象一样，通过 `.value` 修改或读取值
+
+```vue
+<template>
+  message：<input type="text" v-model="message"><br><br>
+  {{message}}
+</template>
+
+<script setup lang="ts">
+  import { customRef } from 'vue'
+
+  // 自定义防抖 Ref
+  function MyRef<T>(value:string, delay = 500) {
+    let timeout:any
+    return customRef((track, trigger) => {
+      return {
+        get() {
+          track()  // 追踪当前数据
+          return value 
+        },
+        set(newValue:string) {
+          clearTimeout(timeout)
+          timeout = setTimeout(() => {
+            value = newValue
+            trigger()  // 触发响应,即更新界面
+          }, delay)
+        }
+      }
+    })
+  }
+
+  let message = MyRef<string>('')
+
+</script>
+```
+
+
+
+
 
 ##  reactive
 
