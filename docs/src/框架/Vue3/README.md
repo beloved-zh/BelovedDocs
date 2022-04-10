@@ -62,6 +62,74 @@ vue create <project-name>
 
 具体可参考官方文档：https://cn.vitejs.dev/guide/
 
+> Vite 需要 [Node.js](https://nodejs.org/en/) 版本 >= 12.0.0。
+
+```sh
+npm create vite@latest
+# or
+yarn create vite
+```
+
+根据提示输入项目名，选择模板等操作。
+
+![image-20220410161516194](image/image-20220410161516194.png)
+
+`vite.config.ts`
+
+```typescript
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+// @ts-ignore
+import path from "path";
+
+export default defineConfig({
+  plugins: [vue()],
+  base: "./", // 类似publicPath，'./'避免打包访问后空白页面，要加上，不然线上也访问不了
+  resolve: {
+    alias: {
+      // 如果报错__dirname找不到，需要安装node,执行 npm install @types/node --save-dev 或 yarn add @types/node --save-dev
+      "@": path.resolve(__dirname, "src"),
+      "@assets": path.resolve(__dirname, "src/assets"),
+      "@components": path.resolve(__dirname, "src/components"),
+      "@images": path.resolve(__dirname, "src/assets/images"),
+      "@views": path.resolve(__dirname, "src/views"),
+      "@store": path.resolve(__dirname, "src/store"),
+    },
+  },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets", //指定静态资源存放路径
+    sourcemap: false, //是否构建source map 文件
+    terserOptions: {
+      // 生产环境移除console
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+  },
+  server: {
+    https: false, // 是否开启 https
+    open: false, // 是否自动在浏览器打开
+    port: 3000, // 端口号
+    host: "0.0.0.0",
+    proxy: {
+      "/api": {
+        target: "", // 后台接口
+        changeOrigin: true,
+        secure: false, // 如果是https接口，需要配置这个参数
+        // ws: true, //websocket支持
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
+  // 引入第三方的配置
+  optimizeDeps: {
+    include: [],
+  },
+});
+```
+
 # Vue3 新特性
 
 - 组件不在需要唯一根标签，可以存在多个根标签
@@ -71,7 +139,7 @@ vue create <project-name>
 
 > Vue3 新增了 `beforeUnmount` 和 `unmounted` 。其实就是对应 Vue2 的 `beforeDestroy` 和 `destroyed`
 
-![实例的生命周期](image/lifecycle.svg+xml)
+![实例的生命周期](image/lifecycle.svg)
 
 # Composition API
 
@@ -349,7 +417,7 @@ export default defineComponent({
 
 `Child.vue`
 
-```vue
+```
 <template>
   <h2>子组件</h2>
   number：{{number}}<br><br>
@@ -382,7 +450,31 @@ export default {
 </script>
 ```
 
+### script setup
 
+参考官方文档：https://v3.cn.vuejs.org/api/sfc-script-setup.html#%E5%9F%BA%E6%9C%AC%E8%AF%AD%E6%B3%95
+
+`<script setup>`： 是在单文件组件 (SFC) 中使用组合式 API 的编译时语法糖。相比于普通的 `<script>` 语法，它具有更多优势：
+
+- 更少的样板内容，更简洁的代码。
+- 能够使用纯 Typescript 声明 props 和抛出事件。
+- 更好的运行时性能 (其模板会被编译成与其同一作用域的渲染函数，没有任何的中间代理)。
+- 更好的 IDE 类型推断性能 (减少语言服务器从代码中抽离类型的工作)。
+
+> 就是 `setup () {}` 的语法糖，简单写法，具体可参考官网。
+
+```vue
+<template>
+  number：{{ number }} <br><br>
+  <button @click="number++">number++</button>
+</template>
+
+<script setup lang="ts">
+  import {ref} from "vue";
+
+  const number = ref(10)
+</script>
+```
 
 ## ref
 
