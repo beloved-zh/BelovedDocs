@@ -476,7 +476,7 @@ export default {
 </script>
 ```
 
-## ref
+## refs
 
 `ref`：接收一个值返回响应式可变 Ref 对象。ref 对象仅有一个 `.value` property，指向该内部值。
 
@@ -613,7 +613,7 @@ export default {
 </script>
 ```
 
-# customRef
+### customRef
 
 > - `customRef` 用于自定义返回一个 ref 对象，可以显式地控制依赖追踪和触发响应，接受工厂函数
 > - 两个参数分别是用于追踪的 `track` 与用于触发响应的 `trigger`，并返回一个带有 `get` 和 `set` 属性的对象
@@ -653,11 +653,7 @@ export default {
 </script>
 ```
 
-
-
-
-
-##  reactive
+## reactive
 
 > reactive：
 >
@@ -665,66 +661,152 @@ export default {
 > - 不能定义基本数据类型
 > - 响应式转换是“深层的”：会影响对象内部所有嵌套的属性
 
-![image-20220407222226315](image/image-20220407222226315.png)
+![image-20220410185740491](image/image-20220410185740491.png)
 
 ```vue
 <template>
-  <h2>reactive使用</h2>
-  姓名：{{user.name}} <br><br>
-  年龄：{{user.age}} <br><br>
-  性别：{{user.gender}} <br><br>
-  爱好：{{user.hobby}} <br><br>
-  老婆：{{user.wife}} <br><br>
-  <button @click="updateUser">修改数据</button>
+  Object：{{user}}<br><br>
+  Array：{{nameList}}<br><br>
+  <button @click="update">更新数据</button>
 </template>
 
-<script lang="ts">
-import {defineComponent, reactive} from 'vue';
+<script setup lang="ts">
+  import { reactive } from 'vue'
 
-export default defineComponent({
-  name: 'App',
-  setup () {
+  // reactive 不能定义基本数据类似
+  // let number = reactive(10)
 
-    // reactive 一般用于定义响应式对象
-    // 返回一个 Proxy 的代理对象，被代理的对象就是传入的对象。响应式是深层的，会影响内部所有嵌套属性
-    let user = reactive<any>({
-      name: '张三',
-      age: 22,
-      hobby: ['抽烟', '喝酒', '烫头'],
-      wife: {
-        name: '小红',
-        age: 20,
-        hobby: ['口红', '包包']
-      }
-    })
+  let user = reactive({
+    name: 'zhngsan',
+    age: 20
+  })
 
-    // 不能定义基本数据类型
-    // let number = reactive(10)
+  let nameList = reactive(['张三', '李四'])
 
-    let updateUser = () => {
-      console.log('=========updateDate===========')
-      // 修改已定义属性
-      user.name += '!'
-      user.age += 1
-      user.wife.name += '!'
+  const update = () => {
+    // 直接赋值会破坏响应式
+    // user = {
+    //   name: '李四',
+    //   age: 22
+    // }
 
-      // 添加一个未定义属性
-      user.gender = '男'
+    // nameList = ['王五']
 
-      // 删除一个已定义属性
-      delete user.wife.hobby
+    // reactive 属性操作不需要 .value
+    user.name = '李四'
+    user.age = 22
+    nameList.push('王五')
 
-      console.log(user)
-    }
-    
-    return {
-      user,
-      updateUser
-    }
+    console.log('user：', user)
+    console.log('nameList', nameList)
   }
-});
+
 </script>
 ```
+
+### readonly
+
+> 接受一个对象 (响应式或纯对象) 或 [ref](https://v3.cn.vuejs.org/api/refs-api.html#ref) 并返回原始对象的只读代理。只读代理是深层的：任何被访问的嵌套 property 也是只读的。
+
+![image-20220410190214648](image/image-20220410190214648.png)
+
+![image-20220410190229367](image/image-20220410190229367.png)
+
+```vue
+<template>
+  Object：{{user}}<br><br>
+  <button @click="update">更新数据</button>
+</template>
+
+<script setup lang="ts">
+  import { reactive, readonly } from 'vue'
+
+  let user = reactive({
+    name: 'zhngsan',
+    age: 20
+  })
+
+  // 拷贝一份proxy对象将其设置为只读
+  let copyUser = readonly(user)
+
+  const update = () => {
+    user.age = 22
+
+    // 只读属性不能被修改
+    copyUser.age =30
+  }
+
+</script>
+```
+
+### isProxy
+
+> 检查对象是否是由 [`reactive`](https://v3.cn.vuejs.org/api/basic-reactivity.html#reactive) 或 [`readonly`](https://v3.cn.vuejs.org/api/basic-reactivity.html#readonly) 创建的 proxy。
+
+### isReactive
+
+> 检查对象是否是由 [`reactive`](https://v3.cn.vuejs.org/api/basic-reactivity.html#reactive) 创建的响应式代理。
+
+### isReadonly
+
+> 检查对象是否是由 [`readonly`](https://v3.cn.vuejs.org/api/basic-reactivity.html#readonly) 创建的只读代理。
+
+### shallowReactive
+
+> 创建一个响应式代理，它跟踪其自身 property 的响应性，但不执行嵌套对象的深层响应式转换 (暴露原始值)。
+>
+> 一个只能对浅层的数据修改 如果是深层的数据只会改变值 不会改变视图
+>
+> 注意：
+>
+> - 页面 `DOM` 挂载之前的修改是有效的
+> - 同时修改自身和深层数据也是有效的，修改自身属性完毕之后重新渲染 DOM 也会将深层数据渲染
+
+```vue
+<template>
+  Object：{{user}}<br><br>
+  <button @click="update1">一块修改</button>
+  <button @click="update2">修改自身</button>
+  <button @click="update3">修改嵌套对象</button>
+</template>
+
+<script setup lang="ts">
+  import { shallowReactive } from 'vue'
+
+  // 定义一个只能对浅层的数据修改 如果是深层的数据只会改变值 不会改变视图
+  let user = shallowReactive({
+    name: '张三',
+    age: 20,
+    wife: {
+      name: '小红',
+      age: 20
+    }
+  })
+
+  // 注意：页面DOM挂载之前的修改是有效的
+  user.age++
+  user.wife.age++
+
+  // 同时修改也是有效的，修改自身属性完毕之后重新渲染 DOM 也会将深层数据渲染
+  const update1 = () => {
+    user.age++
+    user.wife.age++
+  }
+
+  // 自身属性是响应式的，是有效的
+  const update2 = () => {
+    user.age++
+  }
+
+  // 深层数据非响应式 修改只是数据变化，但页面不渲染
+  const update3 = () => {
+    user.wife.age++
+  }
+
+</script>
+```
+
+
 
 ## Vue2 与 Vue3 的响应式
 
