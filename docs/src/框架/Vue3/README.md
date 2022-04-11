@@ -962,7 +962,7 @@ new Proxy(data, {
 })
 ```
 
-# computed
+## computed
 
 > - 简写：只接收一个 `getter` 函数，返回一个处理过后的响应式对象
 > - 完全写法：接收一个 `get` 和 `set` 函数的对象，可以创建一个可写的响应式对象
@@ -1000,6 +1000,160 @@ new Proxy(data, {
     }
   })
 
+</script>
+```
+
+## watch
+
+> `watch`：组合式 API 与选项式 API 完全等效。`watch` 需要侦听特定的数据源，并在单独的回调函数中执行副作用。
+>
+> 注意：
+>
+> - 监听单个值
+>   - 参数1：需要监听的值
+>   - 参数2：监听到的回调函数，接收新值和旧值
+>   - 参数3：配置对象
+>     - deep：开启深度监听
+>     - immediate：鉴听开始之后被立即调用
+> - 监听多个值
+>   - 参数1：传入数组，数组内的是需要监听的值
+>   - 监听回调的参数也是数组格式，内容为监听数据集合的新旧值 
+> - 监听 ref 对象
+>   - 正常情况 ref 是监听不到的，需要开启深度监听，才可以监听到
+>   - 对象的监听 newValue 和 oldValue 的值是一样的
+> - 监听 reactive 对象
+>   - 无论是否开启深度监听，都可以监听到
+>   - 对象的监听 newValue 和 oldValue 的值是一样的
+> - 监听对象单一属性
+>   - 参数1：是一个函数，返回需要监听对象的属性
+
+```vue
+<template>
+  number1：<input type="text" v-model="number1"><br><br>
+  number2：<input type="text" v-model="number2"><br><br>
+  refObject：<input type="text" v-model="refObject.user.name"><br><br>
+  reactiveObject：<input type="text" v-model="reactiveObject.user.name"><br><br>
+  reactiveObjectAge：<input type="text" v-model="reactiveObject.user.age"><br><br>
+</template>
+
+<script setup lang="ts">
+  import { ref, reactive, watch } from 'vue'
+
+  let number1 = ref()
+  let number2 = ref()
+
+  // 监听单个值
+  //    参数1：需要监听的值
+  //    参数2：监听到的回调函数，接收新值和旧值
+  //    参数3：配置对象
+  //        deep：开启深度监听
+  //        immediate：鉴听开始之后被立即调用
+  watch(number1, (newValue, oldValue) => {
+    console.log('newValue：', newValue)
+    console.log('oldValue：', oldValue)
+  }, {
+    deep: true,
+    immediate: true
+  })
+
+  // 监听多个值
+  //    1：传入数组，数组内的是需要监听的值
+  //    2：监听回调的参数也是数组格式，内容为监听数据集合的新旧值 
+  watch([number1, number2], (newValue, oldValue) => {
+    console.log('newValue：', newValue)
+    console.log('oldValue：', oldValue)
+  })
+
+  let refObject = ref({
+    user: {
+      name: '张三'
+    }
+  })
+
+  // 监听 ref 对象。正常情况 ref 是监听不到的，需要开启深度监听，才可以监听到
+  //   注意：对象的监听 newValue 和 oldValue 的值是一样的
+  watch(refObject, (newValue, oldValue) => {
+    console.log('newValue：', newValue)
+    console.log('oldValue：', oldValue)
+  }, {
+    deep: true
+  })
+
+  let reactiveObject = reactive({
+    user: {
+      name: '李四',
+      age: 20
+    }
+  })
+
+  // 监听 reactive 对象。无论是否开启深度监听，都可以监听到
+  //   注意：对象的监听 newValue 和 oldValue 的值是一样的
+  watch(reactiveObject, (newValue, oldValue) => {
+    console.log('newValue：', newValue)
+    console.log('oldValue：', oldValue)
+  })
+
+  // 监听对象单一属性
+  //    参数1：是一个函数，返回需要监听对象的属性
+  watch(() => {
+    return reactiveObject.user.age
+  }, (newValue, oldValue) => {
+    console.log('newValue：', newValue)
+    console.log('oldValue：', oldValue)
+  })
+</script>
+```
+
+### watchEffect
+
+> 立即执行传入的一个函数，同时响应式追踪其依赖，并在其依赖变更时重新运行该函数。只要作用域中用到的属性发生变化就会回调。
+>
+> - 参数1：传入一个函数，函数的参数（onInvalidate）是一个回调函数。会在调用整体代码块之前调用。
+> - 参数2：其余配置项
+>   - 副作用刷新时机 flush。默认是 pre 一般使用 post
+>   - onTrack 和 onTrigger 选项可用于调试侦听器的行为。只能在开发模式下工作
+> - 返回值也是一个回调函数，可通过返回值停止监听。停止监听时也会调一次 onInvalidate
+
+```vue
+<template>
+  name：<input type="text" v-model="name"><br><br>
+  age：<input type="text" v-model="age"><br><br>
+  money：<input type="text" v-model="money"><br><br>
+  <!-- 调用 watchEffect 的返回值可以停止监听 -->
+  <button @click="watchEffectResult()">停止监听</button><br><br>
+</template>
+
+<script setup lang="ts">
+  import { ref, reactive, watch, watchEffect } from 'vue'
+
+  let name = ref()
+  let age = ref()
+  let money = ref()
+
+  // 立即执行传入的一个函数，同时响应式追踪其依赖，并在其依赖变更时重新运行该函数。只要作用域中用到的属性发生变化就会回调。
+  //    传入一个函数，函数的参数是一个回调函数。会在调用整体代码块之前调用
+  //    返回值也是一个回调函数，可通过返回值停止监听。停止监听时也会调一次 onInvalidate
+  const watchEffectResult =  watchEffect(onInvalidate => {
+    console.log('name：', name.value)
+    console.log('age：', age.value)
+    // 会在调用整体代码块之前调用
+    onInvalidate(() => {
+      console.log('watchEffectBefer')
+    })
+  },{
+    //flush: 'pre'    // 默认  组件更新前执行
+    //flush: 'sync'   // 强制效果始终同步触发
+    flush: 'sync',   // 组件更新后执行
+    // onTrack 和 onTrigger 选项可用于调试侦听器的行为。只能在开发模式下工作
+    onTrack () {  // 将在响应式 property 或 ref 作为依赖项被追踪时被调用。
+
+    },
+    onTrigger () {  // 将在依赖项变更导致副作用被触发时被调用。
+
+    }
+  })
+
+ 
 </script>
 ```
 
