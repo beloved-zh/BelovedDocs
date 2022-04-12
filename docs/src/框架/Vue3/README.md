@@ -1247,3 +1247,9 @@ new Proxy(data, {
   })
 </script>
 ```
+
+## emits
+
+> 选项式写法参考：[官网链接](https://v3.cn.vuejs.org/api/options-data.html#emits) 。setup 函数写法参考：[官网链接](https://v3.cn.vuejs.org/guide/composition-api-setup.html#context) 或 [本文](/src/框架/Vue3/README?id=参数) 。此处展示 `<script setup>` 写法。
+>
+> - 
