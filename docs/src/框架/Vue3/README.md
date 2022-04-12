@@ -1252,4 +1252,60 @@ new Proxy(data, {
 
 > 选项式写法参考：[官网链接](https://v3.cn.vuejs.org/api/options-data.html#emits) 。setup 函数写法参考：[官网链接](https://v3.cn.vuejs.org/guide/composition-api-setup.html#context) 或 [本文](/src/框架/Vue3/README?id=参数) 。此处展示 `<script setup>` 写法。
 >
-> - 
+> - 通过 `defineEmits` 定义自定义函数，参数是自定义函数名数组，通过返回值可触发
+> - `TS` 专属可定义函数参数、返回值类型
+
+`App.vue`
+
+```vue
+<template>
+  <h1>父组件</h1>
+  number：{{number}}<br><br>
+  <Child @on-click="getNumber"></Child>
+</template>
+
+<script setup lang="ts">
+  import Child from './Child.vue'
+
+  import { ref } from 'vue'
+
+  let number = ref()
+
+  const getNumber = (val: number) => {
+    number.value = val
+  }
+
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <h2>子组件</h2>
+  number：{{number}} <br><br>
+  <button @click="addNumber">点击增加传递给父组件</button>
+</template>
+
+<script setup lang="ts">
+
+  import {Ref, ref} from 'vue'
+
+  let number = ref<number>(10)
+
+  // defineEmits 定义自定义事件
+  // const emit = defineEmits(['on-click'])
+
+  // TS 专门写法定义函数参数类型和返回值
+  const emit = defineEmits<{
+    (e: 'on-click', number: number): void
+  }>()
+
+  const addNumber = () => {
+    number.value++
+    // 调用
+    emit('on-click', number.value)
+  }
+</script>
+```
+
