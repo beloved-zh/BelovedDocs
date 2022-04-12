@@ -1157,3 +1157,93 @@ new Proxy(data, {
 </script>
 ```
 
+## props
+
+> 选项式写法参考：[官网链接](https://v3.cn.vuejs.org/api/options-data.html#props) 。setup 函数写法参考：[官网链接](https://v3.cn.vuejs.org/guide/composition-api-setup.html#props) 或 [本文](/src/框架/Vue3/README?id=参数) 。此处展示 `<script setup>` 写法。
+>
+> - 通过 `defineProps` 函数接收父组件传递的 props 。参数基本与 选项式相同
+> - `defineProps` 只能在 `<script setup>` 中使用，所以不需要导入.
+> - 返回的是 Proxy 的代理对象，模板中使用 props 的值可以直接使用，js 中使用需要接收返回值
+> - `TS` 写法参数定义是在类型中
+> - `TS` 中可以通过 `withDefaults` 定义默认值
+>   - 参数1：props 函数
+>   - 参数2：一个对象设置默认值
+
+`App.vue`
+
+```vue
+<template>
+  <h1>父组件</h1>
+  <Child :name="name" :age="22"></Child>
+</template>
+
+<script setup lang="ts">
+  // <script setup> 中引用组件之后，可以直接在模板中使用
+  import Child from './Child.vue'
+
+  import { ref } from 'vue'
+
+  let name = ref('张三')
+  let age = ref(20)
+
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <h2>子组件</h2>
+  name：{{name}} <br><br>
+  age：{{age}} <br><br>
+  hobby：{{hobby}} <br><br>
+</template>
+
+<script setup lang="ts">
+
+  // 通过 defineProps 函数接收父组件传递的 props 。参数基本与 选项式相同
+  // defineProps 只能在 <script setup> 中使用，所以不需要导入
+  // 返回的是 Proxy 的代理对象，模板中使用 props 的值可以直接使用，js 中使用需要接收返回值
+
+  // 数组写法
+  // let props = defineProps(['name', 'age'])
+  // console.log(props)
+  // console.log(props.name)
+
+  // 对象写法 可以声明类型、默认值
+  // defineProps({
+  //   name: String,
+  //   age: {
+  //     type: Number,
+  //     default: 20,
+  //   },
+  //   hobby: {
+  //     type: Array,
+  //     default: () => {
+  //       return ['抽烟', '喝酒', '烫头']
+  //     }
+  //   }
+  // })
+
+  // TS 写法， 基本写法
+  // defineProps<{
+  //   name: string,
+  //   age: number,
+  //   hobby: string[]
+  // }>()
+
+  // TS 默认值写法
+  // 通过 withDefaults 函数
+  //    第一个参数是 props 函数
+  //    第二个参数是一个对象设置默认值
+  type Props = {
+    name?: string,
+    age?: number,
+    hobby?: string[]
+  }
+  withDefaults(defineProps<Props>(), {
+    age: 20,
+    hobby: () => ['抽烟', '喝酒']
+  })
+</script>
+```
