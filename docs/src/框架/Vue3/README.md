@@ -1309,3 +1309,70 @@ new Proxy(data, {
 </script>
 ```
 
+## 模板 ref
+
+> - 响应式 API 用法 [官网说明](https://v3.cn.vuejs.org/guide/component-template-refs.html#%E6%A8%A1%E6%9D%BF%E5%BC%95%E7%94%A8)
+> - 组合式 API 中：模板 ref 引用需要定义一个 `ref` 对象进行使用 [官网说明](https://v3.cn.vuejs.org/guide/composition-api-template-refs.html#%E6%A8%A1%E6%9D%BF%E5%BC%95%E7%94%A8)
+> - `<script setup>` 中需要在子组件通过`defineExpose` 暴露出父组件可以通过 `ref` 访问的对象或方法
+
+`App.vue`
+
+```vue
+<template>
+  <h1>父组件</h1>
+  number：{{number}}<br><br>
+  <button @click="getNumber">点击获取子组件数据</button><br><br>
+  <button @click="onChildFun">点击调用子组件方法</button><br><br>
+  <Child ref="child"></Child>
+</template>
+
+<script setup lang="ts">
+  import Child from './Child.vue'
+
+  import { ref } from 'vue'
+
+  // 父组件需要定义一个 ref 对象接收子组件实例
+  // 名称需要和 ref 名称一致
+  let child = ref()
+
+  let number = ref()
+
+  const getNumber = () => {
+    number.value = child.value.number
+  }
+
+  const onChildFun = () => {
+    child.value.addNumber()
+  }
+
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <h2>子组件</h2>
+  number：{{number}} <br><br>
+</template>
+
+<script setup lang="ts">
+
+  import { ref } from 'vue'
+
+  let number = ref<number>(10)
+
+  const addNumber = () => {
+    console.log('Child#addNumber()调用了');
+    
+    number.value++
+  }
+
+  // 通过 defineExpose 暴露父组件可以通过 ref 访问的属性或方法
+  defineExpose({
+    number,
+    addNumber
+  })
+</script>
+```
+
