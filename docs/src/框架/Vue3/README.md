@@ -1376,3 +1376,101 @@ new Proxy(data, {
 </script>
 ```
 
+## Provide / Inject
+
+> 使用 `provide` 和 `inject` ，无论组件层次结构有多深，父组件都可以作为其所有子组件的依赖提供者。
+>
+> 父组件使用 `provide` 选项来提供数据，子组件使用 `inject` 选项来接收使用数据。
+>
+> `provide`：暴露需要提供的数据。如果希望使用者不能修改可以使用 `readonly `
+>
+> - 参数1 是key值
+> - 参数2 是value
+>
+> `inject`：
+>
+> - 参数1 是需要接收的key
+> - 参数2 是默认值
+>
+> 参数是响应式 任何一层进行修改会通知到所有使用者
+
+![image-20220414211003558](image/image-20220414211003558.png)
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  number：{{number}}<br><br>
+  <button @click="addNumber">number++</button><br><br>
+  <Child></Child>
+</template>
+
+<script setup lang="ts">
+  import Child from './Child.vue'
+
+  import { ref, provide  } from 'vue'
+
+  let number = ref(10)
+
+  // 参数1 是key值
+  // 参数2 是value
+  provide('number', number)
+
+  const addNumber = () => {
+    number.value++
+  }
+
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <hr/>
+  <h2>Child.vue</h2>
+  number：{{number}} <br><br>
+  <button @click="addNumber">number++</button><br><br>
+  <Sun></Sun>
+</template>
+
+<script setup lang="ts">
+  import Sun from './Sun.vue'
+  import { inject, ref } from 'vue'
+
+  let number = inject('number', ref(15))
+
+  const addNumber = () => {
+    number.value++
+  }
+</script>
+```
+
+`Sun.vue`
+
+```vue
+<template>
+  <hr/>  
+  <h3>Sun.vue</h3>
+  number：{{number}} <br><br>
+  <button @click="addNumber">number++</button><br><br>
+</template>
+
+<script setup lang="ts">
+    
+  import { inject, ref } from 'vue'
+
+  // 参数1 是需要接收的key
+  // 参数2 是默认值
+  let number = inject('number', ref(20))
+
+  // 参数是响应式 任何一层进行修改会通知到所有使用者
+  const addNumber = () => {
+    number.value++
+  }
+inject
+  
+</script>
+```
+
