@@ -1474,3 +1474,150 @@ inject
 </script>
 ```
 
+# Mitt
+
+Vue3 移除了 `$on`、`$off`、`$once` 等自带的自定义事件相关方法，vue3 中推荐使用 `mitt` 库来使用事件总线传递数据。
+
+GitHub：https://github.com/developit/mitt
+
+## 安装
+
+```sh
+npm i mitt -S
+# or
+yarn add mitt
+```
+
+## 挂载全局 mitt
+
+`main.ts`
+
+```typescript
+import { createApp } from 'vue'
+import App from './App.vue'
+// 引入 mitt
+import mitt from 'mitt'
+
+const Mitt = mitt()
+
+const app = createApp(App)
+
+// 扩展 globalProperties 声明 
+declare module 'vue' {
+    export interface ComponentCustomProperties {
+        $EventBus: typeof Mitt
+    }
+}
+
+// 挂载全局实例，要挂载在config.globalProperties上
+app.config.globalProperties.$EventBus = Mitt
+
+app.mount('#app')
+```
+
+## 触发自定义事件
+
+> `mitt` 挂载在了全局，在 `setup` 中需要使用 `getCurrentInstance` 获取组件实例，才可以使用
+>
+> `$EventBus.emit(eventType,params)`
+
+```vue
+<template>
+  <h2>A.vue</h2>
+  number：{{number}}<br><br>
+  <button @click="cli">传递number</button>
+</template>
+
+<script setup lang="ts">
+  import { ref, getCurrentInstance } from 'vue'
+
+  // 获取组件实例
+  const instance = getCurrentInstance()
+
+  let number = ref(10)
+
+  const cli = () => {
+    // 触发自定义事件
+    instance?.proxy?.$EventBus.emit('on-push', number)
+
+    instance?.proxy?.$EventBus.emit('push-msg', 'message')
+  }
+</script>
+```
+
+## 注册并监听自定义事件
+
+> `$EventBus.on(eventType,callback)`
+>
+> 注意：第一个参数如果为 `*` 代表监听所有事件触发。此时，callback 回调函数有 2 个参数，1 是事件类型，2 是实际参数
+
+```vue
+<template>
+  <h2>B.vue</h2>
+  number：{{number}}<br><br>
+</template>
+
+<script setup lang="ts">
+  import { ref, getCurrentInstance } from 'vue'
+
+  // 获取组件实例
+  const instance = getCurrentInstance()
+
+  let number = ref()
+
+  // 注册并监听自定义事件
+  //    参数1：事件名
+  //    参数2：回调函数 参数为接收值
+  instance?.proxy?.$EventBus.on('on-push', (val) => {
+    console.log('val：', val)
+    number.value = val
+  })
+
+  // 注册并监听所有自定义事件
+  //    参数1：*
+  //    参数2：回调函数 第一个参数是事件名，第二个参数是接收值
+//   instance?.proxy?.$EventBus.on('*', (type, val) => {
+//       console.log('type：', type)
+//       console.log('val：', val)
+//   })
+</script>
+```
+
+## 事件取消
+
+> - 取消指定事件：
+>   - `$EventBus.off(eventType,callback)`
+>   - 需要将回调定义在外部
+> - 取消全部事件：
+>   - `$EventBus.all.clear()`
+
+```vue
+<template>
+  <h2>B.vue</h2>
+  number：{{number}}<br><br>
+</template>
+
+<script setup lang="ts">
+  import { ref, getCurrentInstance } from 'vue'
+
+  // 获取组件实例
+  const instance = getCurrentInstance()
+
+  let number = ref()
+
+  const fun = (val: any) => {
+    console.log('val：', val)
+    number.value = val
+  }
+
+
+  instance?.proxy?.$EventBus.on('on-push', fun)
+  
+  // 取消指定事件的监听。注意：需要将回调定义在外部
+//   instance?.proxy?.$EventBus.off('on-push', fun)
+
+  // 取消所有事件监听
+  instance?.proxy?.$EventBus.all.clear()
+</script>
+```
+
