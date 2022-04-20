@@ -141,6 +141,84 @@ export default defineConfig({
 
 ![实例的生命周期](image/lifecycle.svg)
 
+## v-model
+
+> `v-model` 其实是一个语法糖。通过 `props` 和 `emit` 组合而成的。
+>
+> 新特性：
+>
+> - prop：`value` -> `modelValue`；
+> - 事件：`input` -> `update:modelValue`；
+> - `v-bind` 的 `.sync` 修饰符和组件的 `model` 选项已移除
+> - 新增 支持多个 `v-model`
+> - 新增 支持自定义 修饰符。通过 `modelModifiers` prop 提供给组件
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  showChild：{{showChild}}<br><br>
+  title：{{title}}<br><br>
+  <button @click="showChild = !showChild">切换Chile</button>
+  <!-- 多个 v-model 可使用：指定 -->
+  <Child v-model.test="showChild" v-model:title.test="title"></Child>
+</template>
+
+<script setup lang="ts">
+  import Child from './Child.vue'
+  import {ref} from 'vue'
+
+  let showChild = ref(true)
+  let title = ref('提示标题111')
+</script>
+```
+
+`Child.vue`
+
+```vue
+<template>
+  <div v-if="modelValue">
+    <h1 >Child.vue</h1>
+    title：{{ title }} <br><br>
+    <button @click="close">关闭</button> <br><br>
+    <button @click="updateTitle">修改标题</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+
+  // prop 默认值为 modelValue
+  type Props = {
+    modelValue: boolean,
+    modelModifiers: {
+      default: () => {}
+    },
+    title: string,
+    // 自定义修饰符
+    titleModifiers: {
+      prefix: boolean
+    }
+  }
+  const propsData = defineProps<Props>()
+
+  // 双向绑定默认事件为 update:modelValue  自定义的为 update：xxx
+  const emit = defineEmits(['update:modelValue', 'update:title'])
+
+  let close = () => {
+    console.log(propsData.modelModifiers)
+    emit('update:modelValue', false)
+  }
+
+  let updateTitle = () => {
+    // 查看有指定名称的属性是否有指定的修饰符。后续可根据实际业务做操作
+    console.log(propsData.titleModifiers)
+    console.log(propsData.titleModifiers?.prefix)
+    emit('update:title', '修改后的标题')
+  }
+</script>
+```
+
 # Composition API
 
 `Composition API（组合式 API）` Vue3 新引入的概念，Vue2 中虽然是使用 (`data`、`computed`、`methods`、`watch`) 组件选项来组织逻辑进行开发，但有一个大型组件其中会涉及很多逻辑点，不便于维护开发，使用组合式 API 可将相关代码进行收集拆分组件。
