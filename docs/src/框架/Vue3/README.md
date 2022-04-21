@@ -329,7 +329,84 @@ export default defineConfig({
 
 ```
 
+## hooks
 
+> 自定义Hook。主要用来处理复用代码逻辑的一些封装。相当于 vue2 中的 `Mixins`。
+>
+> Vue2 中 mixins 的缺点：
+>
+> - 涉及到覆盖的问题，组件的 data、methods、filters 会覆盖 mixins 里的同名 data、methods、filters。
+> - 变量来源不明确（隐式传入），不利于阅读，使代码变得难以维护。
+>
+> Vue3 自定义 hook ：
+>
+> - Vue3 的 hook 函数，相当于 vue2 的 mixin, 不同在与 hooks 是函数
+> - Vue3 的 hook 函数，可以帮助提高代码的复用性，能在不同的组件中都利用 hooks 函数
+>
+> hook 库：https://vueuse.org/
+
+自定义 hooks 
+
+```typescript
+import {onMounted} from 'vue'
+
+type Options = {
+    el: string
+}
+
+export default function (options:Options):Promise<string> {
+    return new Promise((resolve) => {
+        onMounted(() => {
+            let img:HTMLImageElement = document.querySelector(options.el) as HTMLImageElement
+            console.log('========================')
+            console.log(img)
+            // 图片加载完毕调用转换 base64
+            img.onload = () => {
+                resolve(base64(img))
+            }
+        })
+
+        const base64 = (el:HTMLImageElement) => {
+            const canvas = document.createElement('canvas')
+            canvas.width = el.width
+            canvas.height = el.height
+            const ctx = canvas.getContext('2d')
+            ctx?.drawImage(el, 0, 0, canvas.width, canvas.height)
+            return canvas.toDataURL('image/png');
+        }
+    })
+}
+```
+
+使用
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  <div style="height: 300px;display: flex;align-content: center">
+    <img src="@assets/logo.png" id="img">
+    <textarea style="width: 100%" readonly v-model="base64"></textarea>
+  </div>
+  <br><br>
+</template>
+
+<script setup lang="ts">
+import {ref} from 'vue'
+// 引入自定义 hook，命名规则一般是 use 开头
+import useBase64 from './hooks'
+
+
+let base64 = ref()
+
+// 调用自定义 hook 函数
+useBase64({
+  el: '#img'
+}).then(res => {
+  base64.value = res
+})
+
+</script>
+```
 
 # Composition API
 
