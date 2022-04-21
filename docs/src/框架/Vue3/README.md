@@ -408,6 +408,67 @@ useBase64({
 </script>
 ```
 
+## 全局函数和变量
+
+> Vue3 没有 `Prototype` 属性 使用 `app.config.globalProperties` 代替定义变量和函数。
+>
+> - vue2：`Vue.prototype.$http = () => {}`
+> - vue3：`createApp({}).config.globalProperties.$http = () => {}`
+
+`main.ts`
+
+```typescript
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+
+type Filter = {
+    format: <T extends any>(str: T) => T
+}
+
+// 扩展 globalProperties 声明 
+declare module 'vue' {
+    export interface ComponentCustomProperties {
+        $filters: Filter,
+        $userName: string
+    }
+}
+
+// 定义全局方法、变量
+app.config.globalProperties.$filters = {
+    format<T extends any>(str: T): string {
+        return `${str}---${str}`
+    }
+}
+app.config.globalProperties.$userName = 'Beloved'
+
+app.mount('#app')
+```
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  <!-- 模板中可直接读取 -->
+  $userName：{{$userName}}<br><br>
+  $filters：{{$filters.format('张三')}}<br><br>
+</template>
+
+<script setup lang="ts">
+
+// setup 读取
+import { getCurrentInstance, ComponentInternalInstance } from 'vue'
+
+const { appContext } = <ComponentInternalInstance>getCurrentInstance()
+
+console.log(appContext.config.globalProperties.$userName)
+console.log(appContext.config.globalProperties.$filters.format('李四'))
+
+</script>
+```
+
 # Composition API
 
 `Composition API（组合式 API）` Vue3 新引入的概念，Vue2 中虽然是使用 (`data`、`computed`、`methods`、`watch`) 组件选项来组织逻辑进行开发，但有一个大型组件其中会涉及很多逻辑点，不便于维护开发，使用组合式 API 可将相关代码进行收集拆分组件。
