@@ -2021,7 +2021,7 @@ import { defineStore } from 'pinia'
 export const useTestStore = defineStore('TEST', {
     state: () => {
         return {
-            count: 1,
+            age: 1,
             username: '张三'
         }
     },
@@ -2041,7 +2041,7 @@ export const useTestStore = defineStore('TEST', {
 ```vue
 <template>
   <h1>App.vue</h1>
-  count：{{store.count}}<br><br>
+  age：{{store.age}}<br><br>
   username：{{store.username}}
 </template>
 
@@ -2072,7 +2072,7 @@ import { defineStore } from 'pinia'
 export const useTestStore = defineStore('TEST', {
     state: () => {
         return {
-            count: 1,
+            age: 1,
             username: '张三'
         }
     },
@@ -2082,8 +2082,8 @@ export const useTestStore = defineStore('TEST', {
     },
     // 等效于 方法，可以做同步异步
     actions: {
-        addCount (num:number) {
-            this.count += num
+        addAge (num:number) {
+            this.age += num
         }
     }
 })
@@ -2091,7 +2091,7 @@ export const useTestStore = defineStore('TEST', {
 
 > state 修改方式：
 >
-> - 直接修改 `store.count++`
+> - 直接修改 `store.age++`
 > - 通过 `$patch` 修改，传递一个对象，可以有多个值，对象中没有的则不会修改
 > - 通过 `$patch` 修改，传递一个函数，可以在修改时做逻辑处理，参数是 `store` 的 `state`
 > - 通过 `$state` 修改，必须覆盖整个 `state` 对象
@@ -2100,7 +2100,7 @@ export const useTestStore = defineStore('TEST', {
 ```vue
 <template>
   <h1>App.vue</h1>
-  count：{{store.count}} <button @click="countAdd">count++</button><br><br>
+  age：{{store.age}} <button @click="ageAdd">age++</button><br><br>
   username：{{store.username}}
 </template>
 
@@ -2112,32 +2112,32 @@ export const useTestStore = defineStore('TEST', {
   
   const countAdd = () => {
     // 1：直接修改
-    //  store.count++
+    //  store.age++
     
     // 2：通过 $patch 修改，传递一个对象，可以有多个，对象中没有的则不会修改
     // store.$patch({
-    //   count: 888,
+    //   age: 888,
     //   username: '李四'
     // })
     
     // 3：通过 $patch 修改，传递一个函数，可以在修改时做逻辑处理，参数是 store 的 state
     // store.$patch((state) => {
     //   console.log('state', state)
-    //   if (state.count > 0) {
-    //     state.count--
+    //   if (state.age > 0) {
+    //     state.age--
     //   } else {
-    //     state.count++
+    //     state.age++
     //   }
     // })
 
     // 4：通过 $state 修改，必须覆盖整个 state 对象
     // store.$state = {
-    //   count: 10,
+    //   age: 10,
     //   username: '李四'
     // }
     
     // 5：通过 action 
-    store.addCount(10)
+    store.addAge(10)
   }
 </script>
 
@@ -2154,11 +2154,11 @@ export const useTestStore = defineStore('TEST', {
 ```vue
 <template>
   <h1>App.vue</h1>
-  count：{{store.count}} <button @click="countAdd">count++</button><br><br>
+  count：{{store.age}} <button @click="ageAdd">age++</button><br><br>
   username：{{store.username}} <br><br>
   <hr>
   <h3>storeToRefs解构</h3>
-  count：{{count}} <button @click="countAdd2">count++</button><br><br>
+  count：{{age}} <button @click="countAge2">age++</button><br><br>
   username：{{username}} <br><br><hr>
 </template>
 
@@ -2170,17 +2170,94 @@ export const useTestStore = defineStore('TEST', {
   const store = useTestStore()
   
   // pinia 直接解构失去响应式
-  // const { count, username } = store
+  // const { age, username } = store
   
-  const { count, username } = storeToRefs(store)
+  const { age, username } = storeToRefs(store)
   
-  const countAdd = () => {
-    store.addCount(10)
+  const ageAdd = () => {
+    store.addAge(10)
   }
   
-  const countAdd2 = () => {
-    count.value++
+  const ageAdd2 = () => {
+    age.value++
   }
+</script>
+
+<style scoped>
+
+</style>
+```
+
+## getters
+
+> 相当于计算属性：
+>
+> - 普通函数 可以使用 `this`
+> - 使用箭头函数后 不能使用 `this`，需要使用参数传递的参数 `state`
+
+`index.ts`
+
+```typescript
+import { defineStore } from 'pinia'
+
+// 定义存储库（hook 一般使用 use 开头）
+// 参数：
+//   id：存储的唯一id，pinia 使用它连接 devtools
+export const useTestStore = defineStore('TEST', {
+    state: () => {
+        return {
+            age: 1,
+            username: '张三'
+        }
+    },
+    // 等效于 计算属性
+    getters: {
+        // 使用箭头函数后 不能使用 this，需要使用 state
+        nameAge: (state) => {
+            return `${state.username}---${state.age}`
+        },
+        // 普通函数 可以使用 this
+        sex(): string {
+          return this.age % 2 === 0 ? '男' : '女'  
+        },
+        // 互相调用
+        nameAgeSex() {
+          return `${this.nameAge}---${this.sex}`  
+        }
+    },
+    // 等效于 方法，可以做同步异步
+    actions: {
+        addAge (num:number) {
+            this.age += num
+        }
+    }
+})
+```
+
+`App.vue`
+
+```vue
+<template>
+  <hr>
+  <h2>state：</h2>
+  age：{{store.age}} <button @click="ageAdd">age++</button><br><br>
+  username：{{store.username}} <br><br>
+  <hr>
+  <h2>getters：</h2>
+  nameAge：{{store.nameAge}}<br><br>
+  sex：{{store.sex}}<br><br>
+  nameAgeSex：{{store.nameAgeSex}}<br><br>
+</template>
+
+<script setup lang="ts">
+  import { useTestStore } from './store/index'
+  
+  const store = useTestStore()
+  
+  const ageAdd = () => {
+    store.age++
+  }
+  
 </script>
 
 <style scoped>
