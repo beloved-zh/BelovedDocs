@@ -2264,3 +2264,107 @@ export const useTestStore = defineStore('TEST', {
 
 </style>
 ```
+
+## actions
+
+> 等效于 方法，可以做同步异步提交：
+>
+> - 同步 直接调用即可
+> - 异步 结合async await 修饰
+
+`index.ts`
+
+```typescript
+import { defineStore } from 'pinia'
+
+type User = {
+    username: string,
+    age: number
+}
+
+const Login = (): Promise<User> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve({
+            username: '张三',
+            age: 25
+        })
+    }, 1000)  
+  })
+}
+
+// 定义存储库（hook 一般使用 use 开头）
+// 参数：
+//   id：存储的唯一id，pinia 使用它连接 devtools
+export const useTestStore = defineStore('TEST', {
+    state: () => {
+        return {
+            age: 1,
+            username: '张三',
+            user: <User>{}
+        }
+    },
+    // 等效于 计算属性
+    getters: {
+        // 使用箭头函数后 不能使用 this，需要使用 state
+        nameAge: (state) => {
+            return `${state.username}---${state.age}`
+        },
+        // 普通函数 可以使用 this
+        sex(): string {
+          return this.age % 2 === 0 ? '男' : '女'  
+        },
+        // 互相调用
+        nameAgeSex() {
+          return `${this.nameAge}---${this.sex}`  
+        }
+    },
+    // 等效于 方法，可以做同步异步
+    actions: {
+        addAge (num:number) {
+            this.age += num
+        },
+        setUser () {
+            this.user = {
+                username: '李四',
+                age: 20
+            }
+        },
+        async Login() {
+            const data = await Login()
+            this.user = data
+        }
+    }
+})
+```
+
+`App.vue`
+
+```vue
+<template>
+  <hr>
+  <h2>actions：</h2>
+  username：{{store.user.username}}<br><br>
+  age：{{store.user.age}}<br><br>
+  <button @click="setUser">同步setUser</button>
+  <button @click="Login">异步Login</button>
+</template>
+
+<script setup lang="ts">
+  import { useTestStore } from './store/index'
+  
+  const store = useTestStore()
+  
+  const setUser = () => {
+    store.setUser()
+  }
+  
+  const Login = () => {
+    store.Login()
+  }
+</script>
+
+<style scoped>
+
+</style>
+```
