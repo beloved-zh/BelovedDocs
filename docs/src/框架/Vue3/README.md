@@ -2523,3 +2523,64 @@ export const useTestStore = defineStore('TEST', {
 
 </style>
 ```
+
+## 持久化插件
+
+`piniaPlugin.ts`
+
+```typescript
+import {PiniaPluginContext} from 'pinia'
+import {toRaw} from 'vue'
+
+const setStorage = (key: string, val: any) => {
+  localStorage.setItem(key, JSON.stringify(val))
+}
+
+const getStorage = (key: string) => {
+    return localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key) as string) : {}
+}
+
+type Options = {
+    key?: string
+}
+
+const DEFAULT_KEY = 'app'
+
+const piniaPlugin = (options?: Options) => {
+    return (context: PiniaPluginContext) => {
+        console.log('context', context)
+        const { store } = context
+        const data = getStorage(`${options?.key ?? DEFAULT_KEY}-${store.$id}`)
+        store.$subscribe(() => {
+            setStorage(`${options?.key ?? DEFAULT_KEY}-${store.$id}`, toRaw(store.$state))
+        })
+        return {
+            ...data
+        }
+    }
+}
+
+export {
+    piniaPlugin
+}
+```
+
+`main.ts`
+
+```typescript
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+
+// pinia
+import {createPinia} from 'pinia'
+import { piniaPlugin } from './store/piniaPlugin'
+const store = createPinia()
+store.use(piniaPlugin())
+
+app.use(store)
+
+
+app.mount('#app')
+```
