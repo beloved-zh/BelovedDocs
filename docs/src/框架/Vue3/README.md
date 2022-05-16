@@ -2058,3 +2058,132 @@ export const useTestStore = defineStore('TEST', {
 ```
 
 ![image-20220516102821210](image/image-20220516102821210.png)
+
+## state
+
+`/store/index.ts`
+
+```typescript
+import { defineStore } from 'pinia'
+
+// 定义存储库（hook 一般使用 use 开头）
+// 参数：
+//   id：存储的唯一id，pinia 使用它连接 devtools
+export const useTestStore = defineStore('TEST', {
+    state: () => {
+        return {
+            count: 1,
+            username: '张三'
+        }
+    },
+    // 等效于 计算属性
+    getters: {
+        
+    },
+    // 等效于 方法，可以做同步异步
+    actions: {
+        addCount (num:number) {
+            this.count += num
+        }
+    }
+})
+```
+
+> state 修改方式：
+>
+> - 直接修改 `store.count++`
+> - 通过 `$patch` 修改，传递一个对象，可以有多个值，对象中没有的则不会修改
+> - 通过 `$patch` 修改，传递一个函数，可以在修改时做逻辑处理，参数是 `store` 的 `state`
+> - 通过 `$state` 修改，必须覆盖整个 `state` 对象
+> - 通过 `action`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  count：{{store.count}} <button @click="countAdd">count++</button><br><br>
+  username：{{store.username}}
+</template>
+
+<script setup lang="ts">
+  import { ref } from 'vue'
+  import { useTestStore } from './store/index'
+  
+  const store = useTestStore()
+  
+  const countAdd = () => {
+    // 1：直接修改
+    //  store.count++
+    
+    // 2：通过 $patch 修改，传递一个对象，可以有多个，对象中没有的则不会修改
+    // store.$patch({
+    //   count: 888,
+    //   username: '李四'
+    // })
+    
+    // 3：通过 $patch 修改，传递一个函数，可以在修改时做逻辑处理，参数是 store 的 state
+    // store.$patch((state) => {
+    //   console.log('state', state)
+    //   if (state.count > 0) {
+    //     state.count--
+    //   } else {
+    //     state.count++
+    //   }
+    // })
+
+    // 4：通过 $state 修改，必须覆盖整个 state 对象
+    // store.$state = {
+    //   count: 10,
+    //   username: '李四'
+    // }
+    
+    // 5：通过 action 
+    store.addCount(10)
+  }
+</script>
+
+<style scoped>
+
+</style>
+```
+
+> pinia 的 state 解构：
+>
+> - 直接结构会失去响应式
+> - 使用 `storeToRefs` 结构具有响应式效果
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  count：{{store.count}} <button @click="countAdd">count++</button><br><br>
+  username：{{store.username}} <br><br>
+  <hr>
+  <h3>storeToRefs解构</h3>
+  count：{{count}} <button @click="countAdd2">count++</button><br><br>
+  username：{{username}} <br><br><hr>
+</template>
+
+<script setup lang="ts">
+  import { ref } from 'vue'
+  import { useTestStore } from './store/index'
+  import {storeToRefs} from 'pinia'
+  
+  const store = useTestStore()
+  
+  // pinia 直接解构失去响应式
+  // const { count, username } = store
+  
+  const { count, username } = storeToRefs(store)
+  
+  const countAdd = () => {
+    store.addCount(10)
+  }
+  
+  const countAdd2 = () => {
+    count.value++
+  }
+</script>
+
+<style scoped>
+
+</style>
+```
