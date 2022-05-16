@@ -1949,3 +1949,112 @@ app.mount('#app')
 </script>
 ```
 
+# Pinia
+
+## 介绍
+
+github：https://github.com/vuejs/pinia
+
+官方文档：https://pinia.vuejs.org/
+
+优点：
+
+- 支持 TS
+- 轻量，压缩后的体积只有1kb左右
+- 去除 mutations，只有 state，getters，actions
+- actions 支持同步和异步
+- 代码扁平化没有模块嵌套，只有 store 的概念，store 之间可以自由使用，每一个store都是独立的
+- 无需手动添加 store，store 一旦创建便会自动添加
+
+## 安装
+
+```shell
+yarn add pinia
+# or
+npm install pinia
+```
+
+## 注册
+
+### vue2
+
+```javascript
+import { createPinia, PiniaVuePlugin } from 'pinia'
+ 
+Vue.use(PiniaVuePlugin)
+const pinia = createPinia()
+ 
+new Vue({
+  el: '#app',
+  // other options...
+  // ...
+  // note the same `pinia` instance can be used across multiple Vue apps on
+  // the same page
+  pinia,
+})
+```
+
+### vue3
+
+```typescript
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+
+// pinia
+import { createPinia } from 'pinia'
+const store = createPinia()
+app.use(store)
+
+app.mount('#app')
+```
+
+## 初始化
+
+```typescript
+import { defineStore } from 'pinia'
+
+// 定义存储库（hook 一般使用 use 开头）
+// 参数：
+//   id：存储的唯一id，pinia 使用它连接 devtools
+export const useTestStore = defineStore('TEST', {
+    state: () => {
+        return {
+            count: 1,
+            username: '张三'
+        }
+    },
+    // 等效于 计算属性
+    getters: {
+        
+    },
+    // 等效于 方法，可以做同步异步
+    actions: {
+        
+    }
+})
+```
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  count：{{store.count}}<br><br>
+  username：{{store.username}}
+</template>
+
+<script setup lang="ts">
+  import { ref } from 'vue'
+  import { useTestStore } from './store/index'
+  
+  const store = useTestStore()
+</script>
+
+<style scoped>
+
+</style>
+```
+
+![image-20220516102821210](image/image-20220516102821210.png)
