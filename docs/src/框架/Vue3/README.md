@@ -2584,3 +2584,87 @@ app.use(store)
 
 app.mount('#app')
 ```
+
+# Router
+
+> github：https://github.com/vuejs/router
+>
+> 官方文档：https://router.vuejs.org/zh/
+
+## 安装
+
+> 注意：
+>
+> - Vue3  对应 router4 版本
+> - Vue2  对应 router3 版本
+
+```shell
+npm install vue-router@4
+# or
+yarn add vue-router@4
+```
+
+## 注册配置
+
+`@router/index.ts`
+
+```typescript
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/',
+    component: () => import('@views/main.vue')
+},{
+    path: '/setup',
+    component: () => import('@views/setup.vue')
+}]
+
+
+// history  =>  createWebHistory
+// hash     =>  createWebHashHistory  
+// abstact  =>  createMemoryHistory
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
+```
+
+`mian.ts`
+
+```typescript
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+
+import router from './router'
+app.use(router)
+
+app.mount('#app')
+```
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  <!-- 路由跳转 -->
+  <router-link to="/">main</router-link>&emsp;
+  <router-link to="/setup">setup</router-link>
+  <hr>
+  <!-- 路由渲染 -->
+  <router-view></router-view>
+</template>
+
+<script setup lang="ts">
+
+</script>
+
+<style scoped>
+
+</style>
+
+```
