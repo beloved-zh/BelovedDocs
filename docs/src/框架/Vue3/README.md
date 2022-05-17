@@ -2726,3 +2726,245 @@ app.mount('#app')
 
 </style>
 ```
+
+## 历史记录
+
+> - `replace` 可以不保存路由跳转的历史记录
+>   - `<router-link replace to="/">main</router-link>`
+>   - `router.replace(url)`
+> - `router.go(1)`：表示在历史堆栈中前进或后退多少步，正数前进，负数后退
+> - `router.back()`：后退一步
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  <span>没有历史记录：</span>
+  <router-link replace to="/">main</router-link>&emsp;
+  <router-link replace to="/setup">setup</router-link><br><br>
+  <span>有历史记录：</span>
+  <router-link to="/">main</router-link>&emsp;
+  <router-link to="/setup">setup</router-link><br><br>
+  <span>没有历史记录：</span>
+  <button @click="toReplace('/')">main</button>&emsp;
+  <button @click="toReplace('/setup')">setup</button><br><br>
+  <span>有历史记录：</span>
+  <button @click="toPush('/')">main</button>&emsp;
+  <button @click="toPush('/setup')">setup</button><br><br>
+  <!-- 前进后退 -->
+  <button @click="prev()">后退</button>&emsp;
+  <button @click="next()">前进</button><br><br>
+  <hr>
+  <!-- 路由渲染 -->
+  <router-view></router-view>
+</template>
+
+<script setup lang="ts">
+
+  import { useRouter } from 'vue-router'
+  
+  const router = useRouter()
+
+  const toPush = (url: string) => {
+    router.push(url)
+  }
+
+  const toReplace = (url: string) => {
+    router.replace(url)
+  }
+
+  const next = () => {
+    router.go(1)
+  }
+  
+  const prev = () => {
+    // router.go(-1)
+    router.back()
+  }
+
+</script>
+
+<style scoped>
+
+</style>
+```
+
+## 路由传参
+
+> - 路由路径跳转时，需要使用 `query` 进行传参
+>   - `query` 传参配置的是 `path`
+>   - `query`传参和 `get` 请求一致，参数在 `url` 后是拼接的
+> - `query` 传参使用 `useRoute`的`query`进行接收
+> - 路由名称跳转时，需要使用 `params` 进行传参
+>   - `params` 传参配置的是 `name`
+>   - `params` 传参时 地址栏没有参数
+> - `params` 传参使用 `useRoute`的`params`进行接收
+> - `params`传参刷新会无效，但是 `query` 会保存传递过来的值，刷新不变 
+> - 动态路由传参：*路径参数* 用冒号 `:` 表示。
+>   - 例如：`/setup/:id/:userName/:sex/:age`
+>   - 参数使用 `restful` 风格路径参数在地址后，刷新不会消失
+
+`index.ts`
+
+```typescript
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/',
+    name: 'Main',
+    component: () => import('@views/main.vue')
+},{
+    path: '/setup/:id/:userName/:sex/:age',
+    name: 'Setup',
+    component: () => import('@views/setup.vue')
+}]
+
+
+// history  =>  createWebHistory
+// hash     =>  createWebHashHistory  
+// abstact  =>  createMemoryHistory
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
+```
+
+`App.vue`
+
+```vue
+<template>
+  <h1>App.vue</h1>
+  <hr>
+  <router-view></router-view>
+</template>
+
+<script setup lang="ts">
+</script>
+
+<style scoped>
+</style>
+```
+
+`main.vue`
+
+```vue
+<template>
+  <el-table :data="data" style="width: 100%">
+    <el-table-column prop="userName" label="姓名" />
+    <el-table-column prop="sex" label="性别" />
+    <el-table-column prop="age" label="年龄" />
+    <el-table-column label="操作" >
+      <template #default="scope">
+        <el-button type="primary" @click="toQuery(scope.row)">Query传参</el-button>
+        <el-button type="primary" @click="toParams(scope.row)">Params传参</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+</template>
+
+<script setup lang="ts">
+
+import { data } from '@data/userList.json'
+import { useRouter } from 'vue-router'
+
+type User = {
+  id: string;
+  userName: string;
+  sex: string;
+  age: number;
+}
+
+const router = useRouter()
+
+// query 传参正常get 地址栏显示参数
+const toQuery = (user: User) => {
+  
+  router.push({
+    path: "/setup",
+    query: user
+  })
+  
+}
+
+// params 传参地址栏不显示，接收页面刷新会丢失数据
+// 如果使用动态路由参数，参数使用 restful 风格路径参数在地址后，刷新不会消失
+const toParams = (user: User) => {
+  
+  router.push({
+    name: 'Setup',
+    params: user
+  })
+  
+}
+</script>
+
+<style scoped>
+
+</style>
+```
+
+`setup.vue`
+
+```vue
+<template>
+  <el-row :gutter="10">
+    <el-col :span="12">
+      <el-card class="box-card ">
+        <template #header>
+          <div class="card-header">
+            <span>用户信息--query</span>
+            <el-button class="button" text @click="router.back()">返回</el-button>
+          </div>
+        </template>
+        <div class="text item">id：{{route.query.id}}</div>
+        <div class="text item">用户民：{{route.query.userName}}</div>
+        <div class="text item">性别：{{route.query.sex}}</div>
+        <div class="text item">年龄：{{route.query.age}}</div>
+      </el-card>
+    </el-col>
+    <el-col :span="12">
+      <el-card class="box-card">
+        <template #header>
+          <div class="card-header">
+            <span>用户信息--params</span>
+            <el-button class="button" text @click="router.back()">返回</el-button>
+          </div>
+        </template>
+        <div class="text item">id：{{route.params.id}}</div>
+        <div class="text item">用户民：{{route.params.userName}}</div>
+        <div class="text item">性别：{{route.params.sex}}</div>
+        <div class="text item">年龄：{{route.params.age}}</div>
+      </el-card>
+    </el-col>
+  </el-row>
+</template>
+
+<script setup lang="ts">
+
+  import { useRoute, useRouter } from 'vue-router'
+  
+  const route = useRoute()
+
+  const router = useRouter()
+  
+</script>
+
+<style scoped>
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .text {
+    font-size: 14px;
+  }
+  
+  .item {
+    margin-bottom: 18px;
+  }
+  
+</style>
+```
