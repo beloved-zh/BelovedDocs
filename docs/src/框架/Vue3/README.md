@@ -2813,6 +2813,10 @@ const routes: Array<RouteRecordRaw> = [{
     name: 'Main',
     component: () => import('@views/main.vue')
 },{
+    path: '/setup-query',
+    name: 'SetupQuery',
+    component: () => import('@views/setup.vue')
+},{
     path: '/setup/:id/:userName/:sex/:age',
     name: 'Setup',
     component: () => import('@views/setup.vue')
@@ -2882,7 +2886,7 @@ const router = useRouter()
 const toQuery = (user: User) => {
   
   router.push({
-    path: "/setup",
+    path: "/setup-query",
     query: user
   })
   
@@ -2967,4 +2971,234 @@ const toParams = (user: User) => {
   }
   
 </style>
+```
+
+## 路由嵌套
+
+> - 父路由的 `path` 不为空，跳转子路由时需要写全路径
+> - 子路由 `path` 为空，则此路由为父路由的默认子路由
+
+`index.ts`
+
+```typescript
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/',
+    name: 'Main',
+    component: () => import('@views/main.vue'),
+    children: [
+        {
+            path: '/',
+            name: 'childrenA',
+            component: () => import('@views/childrenA.vue')
+        },
+        {
+            path: '/childrenB',
+            name: 'childrenB',
+            component: () => import('@views/childrenB.vue')
+        }
+    ]
+},{
+    path: '/setup-query',
+    name: 'SetupQuery',
+    component: () => import('@views/setup.vue')
+},{
+    path: '/setup/:id/:userName/:sex/:age',
+    name: 'Setup',
+    component: () => import('@views/setup.vue')
+}]
+
+
+// history  =>  createWebHistory
+// hash     =>  createWebHashHistory  
+// abstact  =>  createMemoryHistory
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
+```
+
+`main.vue`
+
+```vue
+<template>
+  <el-card class="box-card ">
+    <template #header>
+      <div>
+        <span>子路由</span>
+        <router-link style="margin-left:10px;" to="/">childrenA</router-link>
+        <router-link style="margin-left:10px;" to="/childrenB">childrenB</router-link>
+      </div>
+    </template>
+    <router-view></router-view>
+  </el-card>
+</template>
+
+<script setup lang="ts">
+
+</script>
+
+<style scoped>
+
+</style>
+```
+
+## 命名视图
+
+> - 类似于具名插槽。可对`<router-view name='xxx' />`指定不同的名称，默认视图名称是 `default`。
+> - 命名视图可以在同一级（同一个组件）中展示更多的路由视图，而不是嵌套显示。 
+> - 命名视图可以让一个组件中具有多个路由渲染出口，这对于一些特定的布局组件非常有用。 
+
+`index.ts`
+
+```typescript
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/root',
+    component: () => import('@views/root.vue'),
+    children: [
+        {
+            path: '',
+            components: {
+                default: () => import('@views/main.vue'),
+                header: () => import('@views/header.vue'),
+                bottom: () => import('@views/bottom.vue')
+            }
+        }
+    ]
+}]
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
+```
+
+`root.vue`
+
+```vue
+<template>
+  <router-view name="header"></router-view>
+  <router-view></router-view>
+  <router-view name="bottom"></router-view>
+</template>
+
+<script setup lang="ts">
+
+</script>
+
+<style scoped>
+
+</style>
+```
+
+## 重定向
+
+> `redirect`：重定向路由
+>
+> - 字符串：指定需要重定向地址
+> - 对象：可根据需求配置 `path` 或 `name`
+> - 函数：有一个路由参数，可返回字符串形式或对象形式
+>
+> ![image-20220525151327126](image/image-20220525151327126.png)
+
+`index.ts` 
+
+```
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/',
+    name: 'Main',
+    component: () => import('@views/main.vue'),
+    // 字符串
+    // redirect: '/childrenA',
+    // 对象形式
+    // redirect: {
+    //   // path: '/childrenA'
+    //   // name: 'childrenA'
+    // },
+    // 函数形式
+    redirect: (to) => {
+        console.log('to', to)
+        
+        // 返回字符串
+        // return '/childrenA'
+        // 返回对象
+        return {
+            path: '/childrenA',
+            query: to.query
+        }
+    },
+    children: [
+        {
+            path: '/childrenA',
+            name: 'childrenA',
+            component: () => import('@views/childrenA.vue')
+        },
+        {
+            path: '/childrenB',
+            name: 'childrenB',
+            component: () => import('@views/childrenB.vue')
+        }
+    ]
+}]
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
+```
+
+## 路由别名
+
+> `alias`：为路由指定别名，支持多个别名
+
+`index.ts`
+
+```typescript
+import {createRouter, createWebHistory, RouteRecordRaw} from 'vue-router'
+
+const routes: Array<RouteRecordRaw> = [{
+    path: '/',
+    alias: ['/mian', '/mian1', '/main2'],
+    component: () => import('@views/main.vue'),
+    redirect: (to) => {
+        return {
+            path: '/childrenA',
+            query: to.query
+        }
+    },
+    children: [
+        {
+            path: '/childrenA',
+            name: 'childrenA',
+            component: () => import('@views/childrenA.vue')
+        },
+        {
+            path: '/childrenB',
+            name: 'childrenB',
+            component: () => import('@views/childrenB.vue')
+        }
+    ]
+}]
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+})
+
+//导出router
+export default router
 ```
