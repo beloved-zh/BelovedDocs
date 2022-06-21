@@ -3202,3 +3202,86 @@ const router = createRouter({
 //导出router
 export default router
 ```
+
+## 导航守卫
+
+### 全局前置守卫
+
+```typescript
+/**
+ * 路由前置守卫
+ *  to：目标路由
+ *  from：当前路由
+ *  next()：放行路由跳转
+ *  next(false)：阻止路由跳转
+ *  next('/'):跳转到一个不同的地址。当前的导航被中断，然后进行一个新的导航。
+ */
+router.beforeEach((to, from, next) => {
+    document.title = to.meta.title
+    if(to.path === '/' || store.userStore.loginUser.username) {
+        next()
+    } else {
+        next('/')
+    }
+})
+```
+
+### 全局后置守卫
+
+后置守卫没有 `next()`
+
+```typescript
+router.afterEach((to, from) => {
+    console.log('路由后置守卫');
+    console.log(to);
+    console.log(from);
+})
+```
+
+## 路由元信息
+
+通过路由记录的 `meta` 属性可以定义路由的**元信息**。使用路由元信息可以在路由中附加自定义的数据，例如：
+
+- 权限校验标识。
+- 路由组件的过渡名称。
+- 路由组件持久化缓存 (keep-alive) 的相关配置。
+- 标题名称
+
+我们可以在**导航守卫**或者是**路由对象**中访问路由的元信息数据
+
+```typescript
+// TS 扩展
+declare module 'vue-router' {
+    interface RouteMeta {
+        title: string
+    }
+}
+
+const routes: Array<RouteRecordRaw> = [
+    {
+        path: '/',
+        component: () => import('@views/Login.vue'),
+        meta: {
+            title: '登录'
+        }
+    },
+    {
+        path: '/userInfo',
+        component: () => import('@views/UserInfo.vue'),
+        meta: {
+            title: '个人信息'
+        }
+    }
+]
+
+// 前置守卫根据元信息中 title 修改浏览器 title
+router.beforeEach((to, from, next) => {
+    document.title = to.meta.title
+    if(to.path === '/' || store.userStore.loginUser.username) {
+        next()
+    } else {
+        next('/')
+    }
+}
+```
+
