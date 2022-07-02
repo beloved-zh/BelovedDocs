@@ -3285,3 +3285,88 @@ router.beforeEach((to, from, next) => {
 }
 ```
 
+## 动态路由
+
+> `const removeRoute = router.addRoute()`：
+>
+> - 可通过回调删除路由
+> - 如果添加与现有途径名称相同的途径，会先删除路由，再添加路由
+>
+> `router.removeRoute()`：
+>
+> - 按名称删除路由
+> - 当路由被删除时，**所有的别名和子路由也会被同时删除**
+>
+> `router.hasRoute()`：
+>
+> - 检查路由是否存在
+>
+> `router.getRoutes()`：
+>
+> - 获取一个包含所有路由记录的数组。
+>
+> **注意 vite 在使用动态路由的时候无法使用别名 @ 必须使用相对路径**
+
+```typescript
+const onSubmit = () => {
+    formRef.value?.validate((valid, fields) => {
+        if (valid) {
+            store.userStore.LoginUser(form)
+            initRouter()
+            router.push('/userInfo')
+        } else {
+            console.log('error submit!', fields)
+        }
+    })
+}
+
+const initRouter = () => {
+    const adminData = [
+        {
+            path: '/demo01',
+            name: 'demo01',
+            component: 'demo01.vue'
+        },
+        {
+            path: '/demo02',
+            name: 'demo02',
+            component: 'demo02.vue'
+        },
+        {
+            path: '/demo03',
+            name: 'demo03',
+            component: 'demo03.vue'
+        }
+    ]
+
+    const userData = [
+        {
+            path: '/demo01',
+            name: 'demo01',
+            component: 'demo01.vue'
+        }
+    ]
+
+    if(form.username === 'admin') {
+        adminData.forEach(item => {
+            router.addRoute({
+                path: item.path,
+                name: item.name,
+                component: () => import(`../views/${item.component}`)
+            })
+        })  
+    } else {
+        userData.forEach(item => {
+            router.addRoute({
+                path: item.path,
+                name: item.name,
+                component: () => import(`../views/${item.component}`)
+            })
+        })  
+    }
+
+    console.log('---', router.getRoutes());
+
+}
+```
+
