@@ -10,3 +10,4 @@
 * 框架
   - [SpringSecurity](./src/框架/SpringSecurity/README.md)
   - [Vue3](./src/框架/Vue3/README.md)
+  - [MapStruct](./src/框架/MapStruct/README.md)
