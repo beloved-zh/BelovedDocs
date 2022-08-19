@@ -31,6 +31,71 @@
 </dependency>
 ```
 
+# 整合 Lombok
+
+## 方式一
+
+在`POM` 文件中将 `mapstruct` 坐标放在 `lombok` 坐标之后
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.mapstruct</groupId>
+    <artifactId>mapstruct</artifactId>
+    <version>1.5.2.Final</version>
+</dependency>
+<dependency>
+    <groupId>org.mapstruct</groupId>
+    <artifactId>mapstruct-processor</artifactId>
+    <version>1.5.2.Final</version>
+</dependency>
+```
+
+## 方式二
+
+使用 `maven` 插件
+
+```xml
+<build>
+    <pluginManagement>
+        <plugins>
+            <!-- maven-compiler-plugin 插件，解决 Lombok + MapStruct 组合 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>1.5.2.Final</version>
+                        </path>
+                        <!-- This is needed when using Lombok 1.18.16 and above -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>0.2.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </pluginManagement>
+</build>
+```
+
+> **注意：`lombok` 版本在 `1.18.16` 及以上需要添加 `lombok-mapstruct-binding`**
+
 # 映射
 
 ## 基本映射
